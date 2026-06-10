@@ -140,7 +140,7 @@ const IntroPage = ({ onEnter }) => {
             }} />
             <video
               ref={videoRef}
-              src="/logo_anim.mp4"
+              src="./logo_anim.mp4"
               autoPlay
               loop
               muted
