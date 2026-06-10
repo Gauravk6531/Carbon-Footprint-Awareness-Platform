@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { calculatorAPI } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import EmissionCard from './EmissionCard';
@@ -92,31 +92,34 @@ const SectionHeader = ({ icon, title }) => (
   </div>
 );
 
-const Calculator = () => {
-  const [formData, setFormData] = useState({
-    daily_car_km: '',
-    car_fuel_type: 'petrol',
-    monthly_flights: '',
-    flight_type: 'domestic',
-    public_transport_km: '',
-    public_transport_type: 'bus',
-    monthly_electricity_kwh: '',
-    ac_hours_daily: '',
-    lpg_kg_monthly: '',
-    household_size: 1,
-    region: 'india',
-  });
+const defaultFormData = {
+  daily_car_km: '',
+  car_fuel_type: 'petrol',
+  monthly_flights: '',
+  flight_type: 'domestic',
+  public_transport_km: '',
+  public_transport_type: 'bus',
+  monthly_electricity_kwh: '',
+  ac_hours_daily: '',
+  lpg_kg_monthly: '',
+  household_size: 1,
+  region: 'india',
+};
 
-  const [result, setResult] = useState(null);
+const Calculator = () => {
+  const { userId, setCurrentFootprint, currentFootprint, calculatorFormData, setCalculatorFormData } = useAppContext();
+  const [formData, setFormData] = useState(() => calculatorFormData || defaultFormData);
+  const [result, setResult] = useState(currentFootprint);
   const [loading, setLoading] = useState(false);
-  const { userId, setCurrentFootprint } = useAppContext();
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
+    const updatedData = {
+      ...formData,
       [name]: type === 'number' ? (value === '' ? '' : parseFloat(value)) : value,
-    }));
+    };
+    setFormData(updatedData);
+    setCalculatorFormData(updatedData);
   };
 
   const handleSubmit = async (e) => {

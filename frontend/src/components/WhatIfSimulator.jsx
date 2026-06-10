@@ -3,13 +3,13 @@ import { useAppContext } from '../context/AppContext';
 import { simulatorAPI } from '../services/api';
 
 const WhatIfSimulator = () => {
-  const { currentFootprint } = useAppContext();
+  const { currentFootprint, calculatorFormData } = useAppContext();
   const [scenarios, setScenarios] = useState([]);
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
 
-  if (!currentFootprint) {
+  if (!currentFootprint || !calculatorFormData) {
     return (
       <div style={{ maxWidth: '600px', margin: '48px auto', padding: '0 24px', textAlign: 'center' }}>
         <div style={{
@@ -36,19 +36,19 @@ const WhatIfSimulator = () => {
   }
 
   const predefinedScenarios = [
-    { name: 'Cut car usage by 50%', icon: '🚗', desc: 'Reduce daily driving distance by half', changes: { daily_car_km: currentFootprint.monthly_kg ? currentFootprint.monthly_kg * 0.5 : 0 } },
+    { name: 'Cut car usage by 50%', icon: '🚗', desc: 'Reduce daily driving distance by half', changes: { daily_car_km: (calculatorFormData.daily_car_km || 0) * 0.5 } },
     { name: 'Switch to electric car', icon: '⚡', desc: 'Replace your petrol/diesel vehicle', changes: { car_fuel_type: 'electric' } },
-    { name: 'Reduce AC by 4 hours', icon: '❄️', desc: 'Less air conditioning daily', changes: { ac_hours_daily: Math.max(0, (currentFootprint.ac_hours_daily || 0) - 4) } },
-    { name: 'Use public transport', icon: '🚌', desc: 'Switch to bus or metro commute', changes: { daily_car_km: 0, public_transport_km: 100 } },
+    { name: 'Reduce AC by 4 hours', icon: '❄️', desc: 'Less air conditioning daily', changes: { ac_hours_daily: Math.max(0, (calculatorFormData.ac_hours_daily || 0) - 4) } },
+    { name: 'Use public transport', icon: '🚌', desc: 'Switch to bus or metro commute', changes: { daily_car_km: 0, public_transport_km: (calculatorFormData.public_transport_km || 0) + 100 } },
     { name: 'No flights this year', icon: '✈️', desc: 'Eliminate all air travel', changes: { monthly_flights: 0 } },
-    { name: 'Renewable energy switch', icon: '🌱', desc: 'Switch to solar / green grid', changes: { monthly_electricity_kwh: currentFootprint.monthly_electricity_kwh } },
+    { name: 'Renewable energy switch', icon: '🌱', desc: 'Switch to solar / green grid', changes: { monthly_electricity_kwh: 0 } },
   ];
 
   const runSimulation = async (scenario, idx) => {
     setLoading(true);
     setActiveCard(idx);
     try {
-      const result = await simulatorAPI.whatIf(currentFootprint, scenario.changes, scenario.name);
+      const result = await simulatorAPI.whatIf(calculatorFormData, scenario.changes, scenario.name);
       setScenarios(prev => {
         const exists = prev.findIndex(s => s.scenario_name === result.scenario_name);
         if (exists >= 0) {

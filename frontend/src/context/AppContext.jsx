@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
@@ -6,8 +6,35 @@ export const AppProvider = ({ children }) => {
   const [sessionId, setSessionId] = useState(null);
   const [userId, setUserId] = useState(localStorage.getItem('userId') || null);
   const [userProfile, setUserProfile] = useState(null);
-  const [currentFootprint, setCurrentFootprint] = useState(null);
+  const [currentFootprint, setCurrentFootprintState] = useState(() => {
+    const saved = localStorage.getItem('currentFootprint');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [calculatorFormData, setCalculatorFormDataState] = useState(() => {
+    const saved = localStorage.getItem('calculatorFormData');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [chatHistory, setChatHistory] = useState([]);
+
+  // Persist currentFootprint to localStorage
+  const setCurrentFootprint = (data) => {
+    setCurrentFootprintState(data);
+    if (data) {
+      localStorage.setItem('currentFootprint', JSON.stringify(data));
+    } else {
+      localStorage.removeItem('currentFootprint');
+    }
+  };
+
+  // Persist calculatorFormData to localStorage
+  const setCalculatorFormData = (data) => {
+    setCalculatorFormDataState(data);
+    if (data) {
+      localStorage.setItem('calculatorFormData', JSON.stringify(data));
+    } else {
+      localStorage.removeItem('calculatorFormData');
+    }
+  };
 
   return (
     <AppContext.Provider value={{
@@ -19,6 +46,8 @@ export const AppProvider = ({ children }) => {
       setUserProfile,
       currentFootprint,
       setCurrentFootprint,
+      calculatorFormData,
+      setCalculatorFormData,
       chatHistory,
       setChatHistory,
     }}>
