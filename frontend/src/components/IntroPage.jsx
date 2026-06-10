@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import logoAnim from '../logo_anim.mp4';
 
 /* ──────────────────────────────────────────────
    IntroPage
@@ -140,7 +141,7 @@ const IntroPage = ({ onEnter }) => {
             }} />
             <video
               ref={videoRef}
-              src="/logo_anim.mp4"
+              src={logoAnim}
               autoPlay
               loop
               muted

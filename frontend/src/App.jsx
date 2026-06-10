@@ -4,6 +4,7 @@ import ChatInterface from './components/ChatInterface';
 import Calculator from './components/Calculator';
 import WhatIfSimulator from './components/WhatIfSimulator';
 import Dashboard from './components/Dashboard';
+import logoAnim from '../logo_anim.mp4';
 import './App.css';
 
 /* ────────────────────────────────────────────────
@@ -12,7 +13,7 @@ import './App.css';
 const EcoMindLogo = () => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
     <video
-      src="/logo_anim.mp4"
+      src={logoAnim}
       autoPlay loop muted playsInline
       style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
     />
