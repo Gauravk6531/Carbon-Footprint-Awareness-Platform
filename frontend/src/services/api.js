@@ -12,7 +12,7 @@ const api = axios.create({
 export const chatAPI = {
   async sendMessage(message, sessionId = null, userId = null) {
     try {
-      const response = await api.post('/chat', {
+      const response = await api.post('/api/chat', {
         message,
         session_id: sessionId,
         user_id: userId,
@@ -26,7 +26,7 @@ export const chatAPI = {
 
   async getHistory(sessionId) {
     try {
-      const response = await api.get(`/history/${sessionId}`);
+      const response = await api.get(`/api/history/${sessionId}`);
       return response.data;
     } catch (error) {
       console.error('History error:', error);
@@ -38,7 +38,7 @@ export const chatAPI = {
 export const calculatorAPI = {
   async calculate(carbonInput, userId = null) {
     try {
-      const response = await api.post('/calculate', {
+      const response = await api.post('/api/calculate', {
         carbon_input: carbonInput,
         user_id: userId,
       });
@@ -53,7 +53,7 @@ export const calculatorAPI = {
 export const simulatorAPI = {
   async whatIf(baselineData, scenarioChanges, scenarioName = null) {
     try {
-      const response = await api.post('/what-if', {
+      const response = await api.post('/api/what-if', {
         baseline_data: baselineData,
         scenario_changes: scenarioChanges,
         scenario_name: scenarioName,
@@ -69,7 +69,7 @@ export const simulatorAPI = {
 export const pledgeAPI = {
   async createPledge(pledge, userId = null) {
     try {
-      const response = await api.post('/pledge', pledge, {
+      const response = await api.post('/api/pledge', pledge, {
         params: { user_id: userId },
       });
       return response.data;
@@ -81,7 +81,7 @@ export const pledgeAPI = {
 
   async getPledges(userId) {
     try {
-      const response = await api.get(`/pledges/${userId}`);
+      const response = await api.get(`/api/pledges/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Get pledges error:', error);
