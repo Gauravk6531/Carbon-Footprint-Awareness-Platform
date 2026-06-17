@@ -122,6 +122,29 @@ async def calculate_footprint(request: CalculatorRequest, db=Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/api/footprints/{user_id}")
+async def get_user_footprints(user_id: str, db=Depends(get_db)):
+    """Get all footprint history for a user."""
+    try:
+        from sqlalchemy import desc
+        from app.database import UserFootprint
+        footprints = db.query(UserFootprint).filter(UserFootprint.user_id == user_id).order_by(desc(UserFootprint.timestamp)).all()
+        return {
+            "user_id": user_id,
+            "footprints": [
+                {
+                    "id": f.id,
+                    "timestamp": f.timestamp.isoformat() if f.timestamp else None,
+                    "monthly_kg": f.monthly_kg,
+                    "annual_tonnes": f.annual_tonnes,
+                    "sources": f.sources,
+                }
+                for f in footprints
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============================================================================
 # CHAT ENDPOINTS
 # ============================================================================

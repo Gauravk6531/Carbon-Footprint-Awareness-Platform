@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { calculatorAPI, pledgeAPI } from '../services/api';
 
 /* ────────────────────────────────────────────
    Stat Card — Google Cloud metric style
-──────────────────────────────────────────── */
+ ──────────────────────────────────────────── */
 const StatCard = ({ label, value, unit, sub, icon, color = '#1a73e8', bg = '#e8f0fe' }) => (
   <div style={{
     background: '#fff', border: '1px solid #dadce0',
@@ -58,24 +59,127 @@ const StatCard = ({ label, value, unit, sub, icon, color = '#1a73e8', bg = '#e8f
 );
 
 const Dashboard = () => {
-  const { currentFootprint } = useAppContext();
-  const [userStats] = useState({
-    currentFootprint: 5.2,
-    lastMonthFootprint: 5.8,
-    savedThisMonth: 0.6,
-    streak: 7,
-    pledgesCompleted: 3,
-    badges: ['Beginner', 'Green Citizen'],
-    goalProgress: 65,
-  });
+  const { currentFootprint, userId } = useAppContext();
+  const [history, setHistory] = useState([]);
+  const [pledges, setPledges] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  const loadDashboardData = async () => {
+    try {
+      const uid = userId || 'anonymous';
+      const [histRes, pledgeRes] = await Promise.all([
+        calculatorAPI.getHistory(uid),
+        pledgeAPI.getPledges(uid)
+      ]);
+      setHistory(histRes.footprints || []);
+      setPledges(pledgeRes.pledges || []);
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [userId, currentFootprint]);
+
+  const handleCommitPledge = async (actionTitle) => {
+    try {
+      const uid = userId || 'anonymous';
+      await pledgeAPI.createPledge({
+        action: actionTitle,
+        estimated_co2_reduction: 15.0, // standard estimate
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      }, uid);
+      await loadDashboardData();
+    } catch (err) {
+      console.error("Failed to commit pledge from dashboard:", err);
+    }
+  };
+
+  // 1. Current Footprint (Annual Tonnes)
   const displayFootprint = currentFootprint && currentFootprint.annual_tonnes !== undefined
     ? currentFootprint.annual_tonnes
-    : userStats.currentFootprint;
+    : (history.length > 0 ? history[0].annual_tonnes : 0.0);
 
-  const trendData = [6.2, 5.9, 5.5, 5.8, 5.2];
-  const maxTrend = Math.max(...trendData) + 0.5;
-  const weekLabels = ['May 6', 'May 13', 'May 20', 'May 27', 'Jun 3'];
+  // 2. Streaks (Based on unique calculation days)
+  const uniqueCalcDays = new Set(history.map(h => h.timestamp ? h.timestamp.split('T')[0] : '')).size;
+  const streak = uniqueCalcDays > 0 ? uniqueCalcDays : 0;
+
+  // 3. Goal Progress & Savings
+  const baselineFootprint = history.length > 0 ? history[history.length - 1].annual_tonnes : displayFootprint;
+  const co2SavedThisMonth = Math.max(0, baselineFootprint - displayFootprint);
+
+  let reductionPercentage = 0;
+  if (baselineFootprint > 0) {
+    reductionPercentage = ((baselineFootprint - displayFootprint) / baselineFootprint) * 100;
+  }
+  const targetReduction = 10.0; // 10% monthly target
+  const goalProgress = reductionPercentage > 0
+    ? Math.min(100, Math.round((reductionPercentage / targetReduction) * 100))
+    : 0;
+
+  // 4. Trend Data mapping
+  const sortedHistory = [...history].reverse();
+  const recentCalcs = sortedHistory.slice(-5);
+  const trendData = recentCalcs.length > 0 ? recentCalcs.map(h => h.annual_tonnes) : [displayFootprint || 0];
+  const maxTrend = Math.max(...trendData, 1.0) + 0.5;
+  const weekLabels = recentCalcs.length > 0 
+    ? recentCalcs.map(h => {
+        if (!h.timestamp) return 'Calc';
+        const date = new Date(h.timestamp);
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      }) 
+    : ['Initial'];
+
+  // 5. Dynamic Badges
+  const badgeList = [
+    { label: 'Beginner', icon: '🥉', earned: history.length > 0, desc: 'First footprint' },
+    { label: 'Green Citizen', icon: '🥈', earned: reductionPercentage > 0, desc: 'First reduction' },
+    { label: 'Eco Warrior', icon: '🥇', earned: reductionPercentage >= 25, desc: '25% reduction' },
+    { label: 'Climate Hero', icon: '🏆', earned: reductionPercentage >= 50, desc: '50% reduction' },
+  ];
+
+  // 6. Next Actions & Pledges lookup
+  const pledgedActionsSet = new Set(pledges.map(p => p.action));
+
+  const actionsList = currentFootprint && currentFootprint.recommendations && currentFootprint.recommendations.length > 0
+    ? currentFootprint.recommendations.map((rec, idx) => {
+        let icon = '💡';
+        let tag = 'Recom';
+        if (rec.toLowerCase().includes('car') || rec.toLowerCase().includes('transport') || rec.toLowerCase().includes('transit')) {
+          icon = '🚌';
+          tag = 'Transport';
+        } else if (rec.toLowerCase().includes('ac') || rec.toLowerCase().includes('cooling') || rec.toLowerCase().includes('electricity') || rec.toLowerCase().includes('insulation')) {
+          icon = '❄️';
+          tag = 'Energy';
+        } else if (rec.toLowerCase().includes('bulb') || rec.toLowerCase().includes('led') || rec.toLowerCase().includes('light')) {
+          icon = '💡';
+          tag = 'One-time';
+        }
+        return {
+          icon,
+          title: rec,
+          saving: 'Tailored action recommendation',
+          tag
+        };
+      })
+    : [
+        { icon: '❄️', title: 'Reduce AC by 1 hour daily', saving: 'Save ~8 kg CO₂/month', tag: 'Easy win' },
+        { icon: '🚌', title: 'Try public transit on Tuesdays', saving: 'Save ~3 kg CO₂ per trip', tag: 'Quick start' },
+        { icon: '💡', title: 'Replace 3 bulbs with LED', saving: 'Save ~5 kg CO₂/month', tag: 'One-time' },
+      ];
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div style={{ width: '32px', height: '32px', border: '3px solid #e8eaed', borderTopColor: '#1a73e8', borderRadius: '50%', animation: 'gcSpin 0.8s linear infinite' }} />
+        <span style={{ marginLeft: '12px', fontFamily: '"Google Sans Text", Roboto, Arial, sans-serif', fontSize: '14px', color: '#5f6368' }}>Loading metrics...</span>
+        <style>{`@keyframes gcSpin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -100,28 +204,28 @@ const Dashboard = () => {
       {/* ── Stats grid ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <StatCard
-          label="Monthly Footprint"
+          label="Annual Footprint"
           value={displayFootprint.toFixed(1)}
           unit="tonnes CO₂e"
-          sub={`↓ ${userStats.savedThisMonth.toFixed(1)} from last month`}
+          sub={co2SavedThisMonth > 0 ? `↓ ${co2SavedThisMonth.toFixed(1)} saved from baseline` : 'No reduction yet'}
           icon="🌍" color="#1a73e8" bg="#e8f0fe"
         />
         <StatCard
-          label="Current Streak"
-          value={userStats.streak}
-          unit="days consistent"
+          label="Activity Streak"
+          value={streak}
+          unit="days calculated"
           icon="🔥" color="#fa7b17" bg="#fef3e2"
         />
         <StatCard
-          label="Pledges Completed"
-          value={userStats.pledgesCompleted}
+          label="Pledges Committed"
+          value={pledges.length}
           unit="eco actions taken"
           icon="✅" color="#34a853" bg="#e6f4ea"
         />
         <StatCard
-          label="Monthly Goal"
-          value={`${userStats.goalProgress}%`}
-          unit="toward target"
+          label="Reduction Goal"
+          value={`${goalProgress}%`}
+          unit="toward 10% target"
           icon="🎯" color="#9334e9" bg="#f3e8ff"
         />
       </div>
@@ -135,16 +239,18 @@ const Dashboard = () => {
             fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
             fontSize: '14px', fontWeight: '500', color: '#202124',
           }}>
-            Monthly Footprint Trend
+            Calculation Trend History
           </div>
-          <span style={{
-            background: '#e6f4ea', color: '#137333',
-            borderRadius: '100px', padding: '2px 10px',
-            fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
-            fontSize: '12px', fontWeight: '500',
-          }}>
-            ↓ 16% this period
-          </span>
+          {reductionPercentage > 0 && (
+            <span style={{
+              background: '#e6f4ea', color: '#137333',
+              borderRadius: '100px', padding: '2px 10px',
+              fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+              fontSize: '12px', fontWeight: '500',
+            }}>
+              ↓ {reductionPercentage.toFixed(0)}% overall reduction
+            </span>
+          )}
         </div>
 
         {/* Bar chart */}
@@ -159,17 +265,17 @@ const Dashboard = () => {
                   fontSize: '11px', fontWeight: '500',
                   color: isLast ? '#1a73e8' : '#5f6368',
                 }}>
-                  {value}t
+                  {value.toFixed(1)}t
                 </span>
                 <div
-                  title={`${value} tonnes CO₂e`}
+                  title={`${value.toFixed(1)} tonnes CO₂e`}
                   style={{
                     width: '100%', height: `${heightPct}%`,
                     background: isLast
                       ? 'linear-gradient(180deg, #4285f4, #1a73e8)'
                       : 'linear-gradient(180deg, #dadce0, #bdc1c6)',
                     borderRadius: '4px 4px 0 0',
-                    transition: 'background 200ms',
+                    transition: 'background 200ms, height 300ms',
                   }}
                 />
               </div>
@@ -201,14 +307,14 @@ const Dashboard = () => {
             Progress toward 10% monthly reduction
           </span>
           <span style={{ fontFamily: '"Google Sans", Roboto, Arial, sans-serif', fontSize: '14px', fontWeight: '500', color: '#1a73e8' }}>
-            {userStats.goalProgress}%
+            {goalProgress}%
           </span>
         </div>
         <div style={{ height: '8px', background: '#e8eaed', borderRadius: '4px', overflow: 'hidden' }}>
           <div style={{
             height: '100%', borderRadius: '4px',
             background: 'linear-gradient(90deg, #34a853, #1a73e8)',
-            width: `${userStats.goalProgress}%`,
+            width: `${goalProgress}%`,
             transition: 'width 800ms cubic-bezier(0.4,0,0.2,1)',
           }} />
         </div>
@@ -220,12 +326,7 @@ const Dashboard = () => {
           Achievements
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '12px' }}>
-          {[
-            { label: 'Beginner', icon: '🥉', earned: true, desc: 'First footprint' },
-            { label: 'Green Citizen', icon: '🥈', earned: true, desc: 'First reduction' },
-            { label: 'Eco Warrior', icon: '🥇', earned: false, desc: '25% reduction' },
-            { label: 'Climate Hero', icon: '🏆', earned: false, desc: '50% reduction' },
-          ].map((badge, i) => (
+          {badgeList.map((badge, i) => (
             <div key={i} style={{
               textAlign: 'center', padding: '16px 8px',
               background: badge.earned ? '#f8f9fa' : '#fff',
@@ -251,11 +352,7 @@ const Dashboard = () => {
           Recommended Next Actions
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {[
-            { icon: '❄️', title: 'Reduce AC by 1 hour daily', saving: 'Save ~8 kg CO₂/month', tag: 'Easy win' },
-            { icon: '🚌', title: 'Try public transit on Tuesdays', saving: 'Save ~3 kg CO₂ per trip', tag: 'Quick start' },
-            { icon: '💡', title: 'Replace 3 bulbs with LED', saving: 'Save ~5 kg CO₂/month', tag: 'One-time' },
-          ].map((action, i) => (
+          {actionsList.map((action, i) => (
             <div key={i} style={{
               display: 'flex', gap: '12px', alignItems: 'center',
               padding: '14px 16px',
@@ -275,14 +372,24 @@ const Dashboard = () => {
                   {action.saving}
                 </div>
               </div>
-              <span style={{
-                background: '#e8f0fe', color: '#1967d2',
-                borderRadius: '100px', padding: '2px 10px',
-                fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
-                fontSize: '11px', fontWeight: '500', flexShrink: 0,
-              }}>
-                {action.tag}
-              </span>
+              <button
+                onClick={() => handleCommitPledge(action.title)}
+                disabled={pledgedActionsSet.has(action.title)}
+                style={{
+                  padding: '6px 14px',
+                  border: 'none',
+                  borderRadius: '100px',
+                  background: pledgedActionsSet.has(action.title) ? '#34a853' : '#e8f0fe',
+                  color: pledgedActionsSet.has(action.title) ? '#fff' : '#1967d2',
+                  fontFamily: '"Google Sans Text", Roboto, Arial, sans-serif',
+                  fontSize: '11px', fontWeight: '500',
+                  cursor: pledgedActionsSet.has(action.title) ? 'default' : 'pointer',
+                  transition: 'background 200ms, color 200ms',
+                  flexShrink: 0,
+                }}
+              >
+                {pledgedActionsSet.has(action.title) ? 'Pledged ✓' : 'Commit Pledge'}
+              </button>
             </div>
           ))}
         </div>

@@ -48,6 +48,16 @@ export const calculatorAPI = {
       throw error;
     }
   },
+
+  async getHistory(userId) {
+    try {
+      const response = await api.get(`/api/footprints/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Footprint history error:', error);
+      throw error;
+    }
+  },
 };
 
 export const simulatorAPI = {

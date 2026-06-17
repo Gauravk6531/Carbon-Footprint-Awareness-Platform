@@ -20,6 +20,14 @@ export const AppProvider = ({ children }) => {
     const saved = localStorage.getItem('chatHistory');
     return saved ? JSON.parse(saved) : [];
   });
+  const [scenarios, setScenariosState] = useState(() => {
+    const saved = localStorage.getItem('scenarios');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedScenario, setSelectedScenarioState] = useState(() => {
+    const saved = localStorage.getItem('selectedScenario');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   // Persist sessionId to localStorage
   const setSessionId = (id) => {
@@ -38,6 +46,26 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('chatHistory', JSON.stringify(history));
     } else {
       localStorage.removeItem('chatHistory');
+    }
+  };
+
+  // Persist scenarios to localStorage
+  const setScenarios = (data) => {
+    setScenariosState(data);
+    if (data) {
+      localStorage.setItem('scenarios', JSON.stringify(data));
+    } else {
+      localStorage.removeItem('scenarios');
+    }
+  };
+
+  // Persist selectedScenario to localStorage
+  const setSelectedScenario = (data) => {
+    setSelectedScenarioState(data);
+    if (data) {
+      localStorage.setItem('selectedScenario', JSON.stringify(data));
+    } else {
+      localStorage.removeItem('selectedScenario');
     }
   };
 
@@ -75,6 +103,10 @@ export const AppProvider = ({ children }) => {
       setCalculatorFormData,
       chatHistory,
       setChatHistory,
+      scenarios,
+      setScenarios,
+      selectedScenario,
+      setSelectedScenario,
     }}>
       {children}
     </AppContext.Provider>

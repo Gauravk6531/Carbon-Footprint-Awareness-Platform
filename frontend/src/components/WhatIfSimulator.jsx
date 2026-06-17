@@ -3,9 +3,14 @@ import { useAppContext } from '../context/AppContext';
 import { simulatorAPI } from '../services/api';
 
 const WhatIfSimulator = () => {
-  const { currentFootprint, calculatorFormData } = useAppContext();
-  const [scenarios, setScenarios] = useState([]);
-  const [selectedScenario, setSelectedScenario] = useState(null);
+  const { 
+    currentFootprint, 
+    calculatorFormData,
+    scenarios,
+    setScenarios,
+    selectedScenario,
+    setSelectedScenario 
+  } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
 
