@@ -176,12 +176,14 @@ async def chat_endpoint(request: ChatRequest, db=Depends(get_db)):
                 lpg_kg_monthly=extracted_data.get("lpg_kg_monthly", 0),
                 household_size=extracted_data.get("household_size", 1),
             )
+            recommendations = _generate_recommendations(result.major_contributors)
             carbon_result = {
                 "monthly_kg": result.monthly_kg,
                 "annual_tonnes": result.annual_tonnes,
                 "sources": result.sources,
                 "major_contributors": result.major_contributors,
                 "confidence": result.confidence,
+                "recommendations": recommendations,
             }
         
         # Generate assistant response

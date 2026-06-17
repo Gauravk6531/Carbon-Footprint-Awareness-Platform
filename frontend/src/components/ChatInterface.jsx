@@ -242,44 +242,114 @@ const StructuredResponseCards = ({ data }) => {
 /* ─────────────────────────────────────────────
    ChatInterface — Google Cloud styled
 ───────────────────────────────────────────── */
+const defaultFormData = {
+  daily_car_km: '',
+  car_fuel_type: 'petrol',
+  monthly_flights: '',
+  flight_type: 'domestic',
+  public_transport_km: '',
+  public_transport_type: 'bus',
+  monthly_electricity_kwh: '',
+  ac_hours_daily: '',
+  lpg_kg_monthly: '',
+  household_size: 1,
+  region: 'india',
+};
+
 const ChatInterface = () => {
-  const [messages, setMessages] = useState([]);
+  const { 
+    userId, 
+    sessionId, 
+    setSessionId, 
+    chatHistory, 
+    setChatHistory, 
+    calculatorFormData, 
+    setCalculatorFormData, 
+    setCurrentFootprint 
+  } = useAppContext();
+  
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
   const [inputFocused, setInputFocused] = useState(false);
   const messagesEndRef = useRef(null);
-  const { userId, setSessionId: setContextSessionId } = useAppContext();
 
   useEffect(() => {
-    const sid = `session-${Date.now()}`;
-    setSessionId(sid);
-    setContextSessionId(sid);
-    setMessages([{
-      role: 'assistant',
-      content: '👋 Welcome to EcoMind AI! I\'m your personal carbon footprint coach. Tell me about your daily activities, and I\'ll help you understand and reduce your carbon footprint.\n\nFor example: "I drive 18 km daily, use AC 8 hours, and fly twice a year."',
-    }]);
-  }, [setContextSessionId]);
+    if (!sessionId) {
+      const sid = `session-${Date.now()}`;
+      setSessionId(sid);
+    }
+    if (chatHistory.length === 0) {
+      setChatHistory([{
+        role: 'assistant',
+        content: '👋 Welcome to EcoMind AI! I\'m your personal carbon footprint coach. Tell me about your daily activities, and I\'ll help you understand and reduce your carbon footprint.\n\nFor example: "I drive 18 km daily, use AC 8 hours, and fly twice a year."',
+      }]);
+    }
+  }, [sessionId, setSessionId, chatHistory.length, setChatHistory]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [chatHistory]);
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const userMsg = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
     setLoading(true);
     try {
       const res = await chatAPI.sendMessage(userMsg, sessionId, userId);
-      setMessages(prev => [...prev, {
+      setChatHistory(prev => [...prev, {
         role: 'assistant',
         content: res.message,
         structuredData: res.structured_data,
       }]);
-    } catch {
-      setMessages(prev => [...prev, {
+
+      // Link sections: Sync extracted values to calculator context
+      if (res.carbon_result && res.extracted_data) {
+        const mergedData = {
+          ...defaultFormData,
+          ...calculatorFormData,
+        };
+
+        // Merge only non-zero and populated values extracted by the AI
+        Object.keys(res.extracted_data).forEach(key => {
+          const val = res.extracted_data[key];
+          if (val !== 0 && val !== '' && val !== null && val !== undefined) {
+            mergedData[key] = val;
+          }
+        });
+
+        // Ensure dependent fields update correctly
+        if (res.extracted_data.car_fuel_type && res.extracted_data.daily_car_km > 0) {
+          mergedData.car_fuel_type = res.extracted_data.car_fuel_type;
+        }
+        if (res.extracted_data.public_transport_type && res.extracted_data.public_transport_km > 0) {
+          mergedData.public_transport_type = res.extracted_data.public_transport_type;
+        }
+        if (res.extracted_data.flight_type && res.extracted_data.monthly_flights > 0) {
+          mergedData.flight_type = res.extracted_data.flight_type;
+        }
+        if (res.extracted_data.region) {
+          mergedData.region = res.extracted_data.region;
+        }
+        if (res.extracted_data.household_size && res.extracted_data.household_size > 1) {
+          mergedData.household_size = res.extracted_data.household_size;
+        }
+
+        setCalculatorFormData(mergedData);
+
+        const updatedFootprint = {
+          ...res.carbon_result,
+          recommendations: res.carbon_result.recommendations || 
+            (res.structured_data?.recommendations?.high_impact 
+              ? res.structured_data.recommendations.high_impact.map(r => r.action)
+              : [])
+        };
+        setCurrentFootprint(updatedFootprint);
+      }
+    } catch (err) {
+      console.error('Chat error:', err);
+      setChatHistory(prev => [...prev, {
         role: 'assistant',
         content: '❌ Sorry, I encountered an error. Please try again.',
       }]);
@@ -293,7 +363,7 @@ const ChatInterface = () => {
 
       {/* Messages */}
       <div style={{ flex: '1 1 0', overflowY: 'auto', padding: '24px 24px 16px' }}>
-        {messages.map((msg, idx) => (
+        {chatHistory.map((msg, idx) => (
           <div key={idx} style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', animation: 'gcFadeIn 0.25s ease' }}>
             {/* Sender label */}
             <div style={{
@@ -358,7 +428,7 @@ const ChatInterface = () => {
       </div>
 
       {/* Quick prompts */}
-      {messages.length <= 1 && (
+      {chatHistory.length <= 1 && (
         <div style={{ padding: '0 24px 12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
             'I drive 15 km daily in a petrol car',

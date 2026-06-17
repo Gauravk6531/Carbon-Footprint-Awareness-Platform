@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAppContext } from '../context/AppContext';
 
 /* ────────────────────────────────────────────
    Stat Card — Google Cloud metric style
@@ -57,6 +58,7 @@ const StatCard = ({ label, value, unit, sub, icon, color = '#1a73e8', bg = '#e8f
 );
 
 const Dashboard = () => {
+  const { currentFootprint } = useAppContext();
   const [userStats] = useState({
     currentFootprint: 5.2,
     lastMonthFootprint: 5.8,
@@ -66,6 +68,10 @@ const Dashboard = () => {
     badges: ['Beginner', 'Green Citizen'],
     goalProgress: 65,
   });
+
+  const displayFootprint = currentFootprint && currentFootprint.annual_tonnes !== undefined
+    ? currentFootprint.annual_tonnes
+    : userStats.currentFootprint;
 
   const trendData = [6.2, 5.9, 5.5, 5.8, 5.2];
   const maxTrend = Math.max(...trendData) + 0.5;
@@ -95,7 +101,7 @@ const Dashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <StatCard
           label="Monthly Footprint"
-          value={userStats.currentFootprint.toFixed(1)}
+          value={displayFootprint.toFixed(1)}
           unit="tonnes CO₂e"
           sub={`↓ ${userStats.savedThisMonth.toFixed(1)} from last month`}
           icon="🌍" color="#1a73e8" bg="#e8f0fe"

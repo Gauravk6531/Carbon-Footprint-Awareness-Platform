@@ -112,6 +112,18 @@ const Calculator = () => {
   const [result, setResult] = useState(currentFootprint);
   const [loading, setLoading] = useState(false);
 
+  // Sync local formData with global context state if updated externally (like from Chat Coach)
+  useEffect(() => {
+    if (calculatorFormData) {
+      setFormData(calculatorFormData);
+    }
+  }, [calculatorFormData]);
+
+  // Sync local result with global context state if updated externally (like from Chat Coach)
+  useEffect(() => {
+    setResult(currentFootprint);
+  }, [currentFootprint]);
+
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     const updatedData = {

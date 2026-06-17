@@ -312,10 +312,18 @@ const MainApp = () => {
           background: '#f8f9fa',
           display: 'flex', flexDirection: 'column',
         }}>
-          {activeTab === 'chat'       && <ChatInterface />}
-          {activeTab === 'calculator' && <Calculator />}
-          {activeTab === 'simulator'  && <WhatIfSimulator />}
-          {activeTab === 'dashboard'  && <Dashboard />}
+          <div style={{ display: activeTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', height: '100%', flex: '1 1 0' }}>
+            <ChatInterface />
+          </div>
+          <div style={{ display: activeTab === 'calculator' ? 'block' : 'none' }}>
+            <Calculator />
+          </div>
+          <div style={{ display: activeTab === 'simulator' ? 'block' : 'none' }}>
+            <WhatIfSimulator />
+          </div>
+          <div style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}>
+            <Dashboard />
+          </div>
         </main>
       </div>
 
