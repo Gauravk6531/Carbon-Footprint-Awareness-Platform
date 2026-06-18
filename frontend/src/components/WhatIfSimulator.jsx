@@ -105,6 +105,8 @@ const WhatIfSimulator = () => {
               key={idx}
               onClick={() => runSimulation(scenario, idx)}
               disabled={loading}
+              aria-label={`Simulate: ${scenario.name}`}
+              aria-pressed={isSelected}
               style={{
                 background: '#fff',
                 border: `1px solid ${isSelected ? '#1a73e8' : '#dadce0'}`,

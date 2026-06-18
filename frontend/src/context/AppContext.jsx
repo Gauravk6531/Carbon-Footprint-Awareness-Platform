@@ -9,24 +9,49 @@ export const AppProvider = ({ children }) => {
   const [userId, setUserId] = useState(localStorage.getItem('userId') || null);
   const [userProfile, setUserProfile] = useState(null);
   const [currentFootprint, setCurrentFootprintState] = useState(() => {
-    const saved = localStorage.getItem('currentFootprint');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('currentFootprint');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Failed to parse currentFootprint from localStorage:', e);
+      return null;
+    }
   });
   const [calculatorFormData, setCalculatorFormDataState] = useState(() => {
-    const saved = localStorage.getItem('calculatorFormData');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('calculatorFormData');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Failed to parse calculatorFormData from localStorage:', e);
+      return null;
+    }
   });
   const [chatHistory, setChatHistoryState] = useState(() => {
-    const saved = localStorage.getItem('chatHistory');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('chatHistory');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Failed to parse chatHistory from localStorage:', e);
+      return [];
+    }
   });
   const [scenarios, setScenariosState] = useState(() => {
-    const saved = localStorage.getItem('scenarios');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('scenarios');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Failed to parse scenarios from localStorage:', e);
+      return [];
+    }
   });
   const [selectedScenario, setSelectedScenarioState] = useState(() => {
-    const saved = localStorage.getItem('selectedScenario');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('selectedScenario');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Failed to parse selectedScenario from localStorage:', e);
+      return null;
+    }
   });
 
   // Persist sessionId to localStorage

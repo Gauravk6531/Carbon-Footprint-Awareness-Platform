@@ -6,9 +6,9 @@ import EmissionCard from './EmissionCard';
 /* ─────────────────────────────────────────
    Reusable Google Cloud form field
 ───────────────────────────────────────── */
-const GcField = ({ label, children }) => (
+const GcField = ({ label, id, children }) => (
   <div style={{ marginBottom: '16px' }}>
-    <label style={{
+    <label htmlFor={id} style={{
       display: 'block',
       fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
       fontSize: '13px', fontWeight: '500',
@@ -194,42 +194,42 @@ const Calculator = () => {
 
             {/* Transportation */}
             <SectionHeader icon="🚗" title="Transportation" />
-            <GcField label="Daily car travel (km)">
-              <GcInput type="number" name="daily_car_km" value={formData.daily_car_km} onChange={handleChange} min="0" step="0.5" placeholder="0" />
+            <GcField label="Daily car travel (km)" id="daily_car_km">
+              <GcInput id="daily_car_km" type="number" name="daily_car_km" value={formData.daily_car_km} onChange={handleChange} min="0" step="0.5" placeholder="0" />
             </GcField>
-            <GcField label="Fuel type">
-              <GcSelect name="car_fuel_type" value={formData.car_fuel_type} onChange={handleChange}>
+            <GcField label="Fuel type" id="car_fuel_type">
+              <GcSelect id="car_fuel_type" name="car_fuel_type" value={formData.car_fuel_type} onChange={handleChange}>
                 <option value="petrol">Petrol</option>
                 <option value="diesel">Diesel</option>
                 <option value="electric">Electric</option>
               </GcSelect>
             </GcField>
-            <GcField label="Flights per month">
-              <GcInput type="number" name="monthly_flights" value={formData.monthly_flights} onChange={handleChange} min="0" step="0.25" placeholder="0" />
+            <GcField label="Flights per month" id="monthly_flights">
+              <GcInput id="monthly_flights" type="number" name="monthly_flights" value={formData.monthly_flights} onChange={handleChange} min="0" step="0.25" placeholder="0" />
             </GcField>
-            <GcField label="Public transport (km/month)">
-              <GcInput type="number" name="public_transport_km" value={formData.public_transport_km} onChange={handleChange} min="0" step="1" placeholder="0" />
+            <GcField label="Public transport (km/month)" id="public_transport_km">
+              <GcInput id="public_transport_km" type="number" name="public_transport_km" value={formData.public_transport_km} onChange={handleChange} min="0" step="1" placeholder="0" />
             </GcField>
 
             {/* Energy */}
             <SectionHeader icon="⚡" title="Energy & Cooling" />
-            <GcField label="Monthly electricity (kWh)">
-              <GcInput type="number" name="monthly_electricity_kwh" value={formData.monthly_electricity_kwh} onChange={handleChange} min="0" step="10" placeholder="0" />
+            <GcField label="Monthly electricity (kWh)" id="monthly_electricity_kwh">
+              <GcInput id="monthly_electricity_kwh" type="number" name="monthly_electricity_kwh" value={formData.monthly_electricity_kwh} onChange={handleChange} min="0" step="10" placeholder="0" />
             </GcField>
-            <GcField label="AC usage (hours/day)">
-              <GcInput type="number" name="ac_hours_daily" value={formData.ac_hours_daily} onChange={handleChange} min="0" step="0.5" max="24" placeholder="0" />
+            <GcField label="AC usage (hours/day)" id="ac_hours_daily">
+              <GcInput id="ac_hours_daily" type="number" name="ac_hours_daily" value={formData.ac_hours_daily} onChange={handleChange} min="0" step="0.5" max="24" placeholder="0" />
             </GcField>
-            <GcField label="LPG / Cooking gas (kg/month)">
-              <GcInput type="number" name="lpg_kg_monthly" value={formData.lpg_kg_monthly} onChange={handleChange} min="0" step="0.5" placeholder="0" />
+            <GcField label="LPG / Cooking gas (kg/month)" id="lpg_kg_monthly">
+              <GcInput id="lpg_kg_monthly" type="number" name="lpg_kg_monthly" value={formData.lpg_kg_monthly} onChange={handleChange} min="0" step="0.5" placeholder="0" />
             </GcField>
 
             {/* Household */}
             <SectionHeader icon="👥" title="Household" />
-            <GcField label="Household size (people)">
-              <GcInput type="number" name="household_size" value={formData.household_size} onChange={handleChange} min="1" step="1" />
+            <GcField label="Household size (people)" id="household_size">
+              <GcInput id="household_size" type="number" name="household_size" value={formData.household_size} onChange={handleChange} min="1" step="1" />
             </GcField>
-            <GcField label="Region">
-              <GcSelect name="region" value={formData.region} onChange={handleChange}>
+            <GcField label="Region" id="region">
+              <GcSelect id="region" name="region" value={formData.region} onChange={handleChange}>
                 <option value="india">India</option>
                 <option value="us">USA</option>
                 <option value="eu">European Union</option>

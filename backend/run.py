@@ -18,12 +18,12 @@ if __name__ == "__main__":
     
     # Verify Gemini API key
     if not os.getenv("GEMINI_API_KEY"):
-        print("⚠️  WARNING: GEMINI_API_KEY not set. Chat features will be limited.")
+        print("WARNING: GEMINI_API_KEY not set. Chat features will be limited.")
         print("   Set it: export GEMINI_API_KEY='your-key'")
     
-    print("🌱 Starting EcoMind AI Backend...")
-    print("📡 Running on http://localhost:8000")
-    print("📚 API docs: http://localhost:8000/docs")
+    print("Starting EcoMind AI Backend...")
+    print("Running on http://localhost:8000")
+    print("API docs: http://localhost:8000/docs")
     
     uvicorn.run(
         "app.main:app",

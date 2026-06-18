@@ -18,7 +18,7 @@ const EmissionCard = ({ result }) => {
       
       <div className="mb-6">
         <div className="text-4xl font-bold text-gray-900">
-          {result.annual_tonnes.toFixed(1)}
+          {(Number(result.annual_tonnes) || 0.0).toFixed(1)}
         </div>
         <div className="text-sm text-gray-600">tonnes CO₂e per year</div>
         <div className={`text-lg font-semibold mt-2 ${category.color}`}>
@@ -30,7 +30,7 @@ const EmissionCard = ({ result }) => {
         <div>
           <div className="text-sm text-gray-600">Monthly</div>
           <div className="text-2xl font-bold text-gray-900">
-            {result.monthly_kg.toFixed(0)}
+            {(Number(result.monthly_kg) || 0.0).toFixed(0)}
           </div>
           <div className="text-xs text-gray-500">kg CO₂e</div>
         </div>
@@ -50,7 +50,7 @@ const EmissionCard = ({ result }) => {
               <div key={source} className="flex justify-between text-sm">
                 <span className="text-gray-600 capitalize">{source}</span>
                 <span className="font-medium text-gray-900">
-                  {(amount * 12 / 1000).toFixed(2)} t/year
+                  {((Number(amount) || 0.0) * 12 / 1000).toFixed(2)} t/year
                 </span>
               </div>
             ))}

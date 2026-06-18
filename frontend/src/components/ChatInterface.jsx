@@ -362,7 +362,13 @@ const ChatInterface = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
 
       {/* Messages */}
-      <div style={{ flex: '1 1 0', overflowY: 'auto', padding: '24px 24px 16px' }}>
+      <div
+        role="log"
+        aria-label="Chat messages"
+        aria-live="polite"
+        aria-relevant="additions"
+        style={{ flex: '1 1 0', overflowY: 'auto', padding: '24px 24px 16px' }}
+      >
         {chatHistory.map((msg, idx) => (
           <div key={idx} style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', animation: 'gcFadeIn 0.25s ease' }}>
             {/* Sender label */}
@@ -404,14 +410,14 @@ const ChatInterface = () => {
 
         {/* Loading indicator */}
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <div role="status" aria-live="polite" style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '16px' }}>
             <div style={{
               background: '#f1f3f4',
               borderRadius: '18px 18px 18px 4px',
               padding: '12px 16px',
               display: 'flex', alignItems: 'center', gap: '8px',
             }}>
-              <div style={{
+              <div aria-hidden="true" style={{
                 width: '16px', height: '16px',
                 border: '2px solid #e8eaed',
                 borderTopColor: '#1a73e8',
@@ -478,10 +484,12 @@ const ChatInterface = () => {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyPress={e => e.key === 'Enter' && handleSend()}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             placeholder="Tell me about your lifestyle…"
+            aria-label="Describe your lifestyle to calculate carbon footprint"
+            aria-describedby="chat-disclaimer"
             disabled={loading}
             style={{
               flex: '1',
@@ -497,6 +505,7 @@ const ChatInterface = () => {
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
+            aria-label="Send message"
             style={{
               width: '40px', height: '40px',
               border: 'none', borderRadius: '50%',
@@ -513,7 +522,7 @@ const ChatInterface = () => {
             </svg>
           </button>
         </div>
-        <p style={{
+        <p id="chat-disclaimer" style={{
           fontFamily: '"Google Sans Text", Roboto, Arial, sans-serif',
           fontSize: '11px', color: '#9aa0a6',
           textAlign: 'center', marginTop: '8px',

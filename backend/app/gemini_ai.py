@@ -4,29 +4,43 @@ Handles extraction, summarization, and recommendation generation.
 """
 
 import json
-from typing import Dict, Optional, Tuple
+from typing import Dict
 import google.generativeai as genai
 from app.config import settings
 
+
+def _clean_json(text: str) -> str:
+    """Strip markdown code fences that Gemini sometimes wraps around JSON."""
+    text = text.strip()
+    if text.startswith("```"):
+        # Remove opening fence line (e.g. ```json\n or ```\n)
+        newline = text.find("\n")
+        text = text[newline + 1:] if newline != -1 else text[3:]
+        # Remove closing fence
+        if text.rstrip().endswith("```"):
+            text = text.rstrip()[:-3]
+    return text.strip()
+
+
 class GeminiClient:
     """Client for Gemini AI API."""
-    
+
     def __init__(self):
         """Initialize Gemini client."""
         if not settings.gemini_api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
-        
+
         genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
-    
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
+
     def extract_carbon_data(self, user_text: str) -> Dict:
         """
         Extract structured carbon data from natural language text.
         Uses Gemini to parse user input, then validates the output.
         """
-        
+
         prompt = f"""You are an expert carbon footprint data extraction assistant.
-        
+
 User provided this lifestyle information:
 "{user_text}"
 
@@ -53,18 +67,10 @@ Rules:
 - Only set to 'high' confidence if most fields are clearly stated
 - If key values missing, set needs_followup=true
 - Return ONLY JSON, nothing else"""
-        
+
         try:
             response = self.model.generate_content(prompt)
-            text = response.text.strip()
-            
-            # Remove markdown code blocks if present
-            if text.startswith("```"):
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
-            
-            data = json.loads(text)
+            data = json.loads(_clean_json(response.text))
             return data
         except Exception as e:
             print(f"Extraction error: {e}")
@@ -84,14 +90,12 @@ Rules:
                 "needs_followup": True,
                 "followup_question": "Could you provide more details about your daily activities?",
             }
-    
+
     def generate_summary(self, carbon_data: Dict, carbon_result: Dict) -> str:
-        """
-        Generate a human-friendly summary of carbon footprint.
-        """
-        
+        """Generate a human-friendly summary of carbon footprint."""
+
         prompt = f"""Summarize this carbon footprint in 2-3 sentences, in a friendly, non-preachy tone:
-        
+
 Annual emissions: {carbon_result['annual_tonnes']} tonnes CO2e
 Monthly emissions: {carbon_result['monthly_kg']} kg CO2e
 
@@ -102,20 +106,18 @@ Main lifestyle factors:
 - AC: {carbon_data.get('ac_hours_daily', 0)} hours/day
 
 Make it relatable and encouraging. Do NOT include recommendations yet."""
-        
+
         try:
             response = self.model.generate_content(prompt)
             return response.text.strip()
-        except Exception as e:
+        except Exception:
             return f"Your carbon footprint is about {carbon_result['annual_tonnes']} tonnes CO2e annually. Let's find ways to reduce it together!"
-    
+
     def generate_action_plan(self, carbon_data: Dict, carbon_result: Dict, user_type: str = "general") -> Dict:
-        """
-        Generate personalized action plan based on user data and type.
-        """
-        
+        """Generate personalized action plan based on user data and type."""
+
         major_sources = ", ".join([f"{src}: {amount:.1f} kg/month" for src, amount, _ in carbon_result['major_contributors']])
-        
+
         prompt = f"""Create a personalized action plan for a {user_type} to reduce their carbon footprint.
 
 Current situation:
@@ -142,17 +144,10 @@ Return ONLY valid JSON with NO markdown:
 }}
 
 Be specific, realistic, and tailored to their {user_type} lifestyle. Return ONLY JSON."""
-        
+
         try:
             response = self.model.generate_content(prompt)
-            text = response.text.strip()
-            
-            if text.startswith("```"):
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
-            
-            return json.loads(text)
+            return json.loads(_clean_json(response.text))
         except Exception as e:
             print(f"Action plan generation error: {e}")
             return {
@@ -170,12 +165,10 @@ Be specific, realistic, and tailored to their {user_type} lifestyle. Return ONLY
                 "next_30_days_action": {"action": "Install a smart thermostat or manual adjustment routine", "co2_reduction_kg": 15},
                 "motivation_message": "Every small change adds up. You've got this!",
             }
-    
+
     def generate_followup_questions(self, carbon_data: Dict) -> str:
-        """
-        Generate follow-up questions to clarify user inputs.
-        """
-        
+        """Generate follow-up questions to clarify user inputs."""
+
         missing = []
         if carbon_data.get("daily_car_km", 0) == 0:
             missing.append("car usage")
@@ -183,29 +176,27 @@ Be specific, realistic, and tailored to their {user_type} lifestyle. Return ONLY
             missing.append("electricity consumption")
         if carbon_data.get("monthly_flights", 0) == 0 and carbon_data.get("confidence") != "high":
             missing.append("flight frequency")
-        
+
         if not missing:
             return None
-        
+
         prompt = f"""Ask ONE friendly, specific follow-up question to clarify: {', '.join(missing)}
-        
+
 Keep it conversational, not like a form. For example:
 - Instead of "Provide electricity usage": "How much do you think your monthly electricity bill is?"
 - Instead of "Flight frequency": "Do you travel by plane often for work or leisure?"
 
 Generate one natural question:"""
-        
+
         try:
             response = self.model.generate_content(prompt)
             return response.text.strip()
         except Exception:
             return "Could you tell me more about your electricity usage?"
-    
+
     def generate_scenario_analysis(self, baseline: Dict, scenario: Dict) -> str:
-        """
-        Generate natural language analysis of a what-if scenario.
-        """
-        
+        """Generate natural language analysis of a what-if scenario."""
+
         prompt = f"""Compare these two carbon footprint scenarios in 2-3 sentences:
 
 Baseline: {baseline['annual_tonnes']} tonnes/year
@@ -213,7 +204,7 @@ Scenario: {scenario['annual_tonnes']} tonnes/year
 Reduction: {scenario.get('percentage_reduction', 0)}%
 
 Make it encouraging and actionable, focusing on the positive impact."""
-        
+
         try:
             response = self.model.generate_content(prompt)
             return response.text.strip()
@@ -225,70 +216,61 @@ Make it encouraging and actionable, focusing on the positive impact."""
         Generate a fully structured JSON response package combining deterministic calculation results
         and AI-driven insights (recommendations, what-if scenarios, weekly challenge, and assumptions).
         """
-        # Formulate fallback data package first in case Gemini API call fails
         annual_val = carbon_result.get('annual_tonnes', 0.0)
         fallback_score = max(10, min(98, int(100 - (annual_val * 4.5))))
-        
-        categories = []
-        for cat, val in carbon_result.get('sources', {}).items():
-            if val > 0:
-                categories.append({
-                    "name": cat.capitalize(),
-                    "value": round(val * 12 / 1000, 2),
-                    "unit": "tons"
-                })
-        
-        contributors = []
-        for cat, val, pct in carbon_result.get('major_contributors', []):
-            contributors.append({
-                "source": cat.capitalize(),
-                "percentage": round(pct, 1),
-                "annual_tonnes": round(val * 12 / 1000, 2)
-            })
+
+        categories = [
+            {"name": cat.capitalize(), "value": round(val * 12 / 1000, 2), "unit": "tons"}
+            for cat, val in carbon_result.get('sources', {}).items() if val > 0
+        ]
+
+        contributors = [
+            {"source": cat.capitalize(), "percentage": round(pct, 1), "annual_tonnes": round(val * 12 / 1000, 2)}
+            for cat, val, pct in carbon_result.get('major_contributors', [])
+        ]
 
         fallback_data = {
             "summary": {
                 "score": fallback_score,
                 "total_annual_tonnes": annual_val,
-                "categories": categories if categories else [{"name": "Overall", "value": annual_val, "unit": "tons"}]
+                "categories": categories or [{"name": "Overall", "value": annual_val, "unit": "tons"}],
             },
-            "contributors": contributors if contributors else [{"source": "Overall Energy", "percentage": 100.0, "annual_tonnes": annual_val}],
+            "contributors": contributors or [{"source": "Overall Energy", "percentage": 100.0, "annual_tonnes": annual_val}],
             "recommendations": {
                 "high_impact": [
                     {"action": "Reduce personal car travel or switch to public transit", "savings": "0.4 tons CO₂/year"},
-                    {"action": "Optimize air conditioning usage and set thermostat to 25°C", "savings": "0.2 tons CO₂/year"}
+                    {"action": "Optimize air conditioning usage and set thermostat to 25°C", "savings": "0.2 tons CO₂/year"},
                 ],
                 "easy_wins": [
                     {"action": "Replace conventional bulbs with energy-efficient LEDs"},
-                    {"action": "Enable power-saving mode on home appliances"}
-                ]
+                    {"action": "Enable power-saving mode on home appliances"},
+                ],
             },
             "what_if": {
                 "scenario": "If you reduce AC usage by 2 hours daily",
                 "current_footprint": f"{annual_val} tons/year",
                 "new_footprint": f"{round(annual_val * 0.9, 2)} tons/year",
                 "reduction_percentage": 10.0,
-                "estimated_savings_rupees": int(annual_val * 1200)
+                "estimated_savings_rupees": int(annual_val * 1200),
             },
             "challenge": {
                 "title": "Weekly Green Commitment",
                 "tasks": [
                     "Take public transport or carpool at least twice this week",
-                    "Turn off AC 1 hour earlier each day"
+                    "Turn off AC 1 hour earlier each day",
                 ],
-                "potential_saved_kg": 15
+                "potential_saved_kg": 15,
             },
             "confidence": {
                 "score": 85 if carbon_result.get('confidence', '').lower().startswith('high') else 65,
                 "assumptions": [
                     f"Standard fuel emission factors for {carbon_data.get('car_fuel_type', 'petrol')} vehicles",
                     f"Grid mix electricity emissions for {carbon_data.get('region', 'india')} region",
-                    "Average short-haul and long-haul domestic flight travel distances"
-                ]
-            }
+                    "Average short-haul and long-haul domestic flight travel distances",
+                ],
+            },
         }
 
-        # Request Gemini to generate a tailored JSON package based on these parameters
         prompt = f"""You are an expert carbon footprint advisor. Based on the following deterministic calculation results, generate a personalized structured response package.
 
 Calculation Results:
@@ -304,14 +286,6 @@ User Lifestyle Details:
 - AC usage: {carbon_data.get('ac_hours_daily', 0)} hours/day
 - LPG usage: {carbon_data.get('lpg_kg_monthly', 0)} kg/month
 - Household Size: {carbon_data.get('household_size', 1)} people
-
-Please generate a JSON object matching exactly the format below. Ensure that:
-1. 'score' is a number from 0 to 100, where 100 means zero/very low emissions and 0 means extremely high emissions. Calculate it reasonably (e.g. average Indian household is 75-85, high US traveler is 15-30).
-2. All category values in the summary are converted to annual tons (divide monthly kg by 1000 and multiply by 12, or use the annual breakdown). Use short, clean category names like 'Transport', 'Home Energy', 'Flights', 'Cooking'.
-3. The recommendations must include 2 'high_impact' items (each with a realistic estimated CO2 savings in tons/year) and 2 'easy_wins' items.
-4. The what_if scenario must simulate a specific lifestyle change (e.g., reduce AC, reduce car travel, use public transit), showing the current footprint, new footprint, percentage reduction, and annual savings in Indian Rupees (₹) (e.g. calculate energy or fuel cost savings, typical: 1 kg CO2 reduction ~ ₹15-20 saved).
-5. The challenge contains a relevant weekly challenge with 2 action items and the potential CO2 saved in kg.
-6. The confidence score is a number (e.g., 85), and assumptions list the specific assumptions made during estimation.
 
 Return ONLY valid JSON (no markdown, no backticks, no other text):
 {{
@@ -355,20 +329,10 @@ Return ONLY valid JSON (no markdown, no backticks, no other text):
 
         try:
             response = self.model.generate_content(prompt)
-            text = response.text.strip()
-            
-            # Clean markdown codeblocks
-            if text.startswith("```"):
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
-            
-            data = json.loads(text)
-            
-            # Ground calculation parameters to guarantee correctness of calculated data
+            data = json.loads(_clean_json(response.text))
+            # Ground the deterministic total to prevent AI hallucination
             data["summary"]["total_annual_tonnes"] = annual_val
             return data
         except Exception as e:
             print(f"Structured response generation error: {e}")
             return fallback_data
-

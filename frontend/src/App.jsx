@@ -80,10 +80,13 @@ const MainApp = () => {
       background: '#f8f9fa',
     }}>
 
+      {/* Skip to main — keyboard accessibility */}
+      <a href="#main-content" className="skip-to-main">Skip to main content</a>
+
       {/* ═══════════════════════════════════════
           TOP BAR — Google Cloud header pattern
       ════════════════════════════════════════ */}
-      <header style={{
+      <header role="banner" style={{
         height: '64px', minHeight: '64px',
         background: '#fff',
         borderBottom: '1px solid #dadce0',
@@ -95,7 +98,9 @@ const MainApp = () => {
         {/* Hamburger — mobile only */}
         <button
           onClick={() => setSidebarOpen(v => !v)}
-          aria-label="Toggle menu"
+          aria-label="Toggle navigation menu"
+          aria-expanded={sidebarOpen}
+          aria-controls="gc-sidebar"
           style={{
             width: '40px', height: '40px',
             border: 'none', background: 'transparent',
@@ -200,7 +205,9 @@ const MainApp = () => {
             LEFT SIDEBAR — Google Cloud nav style
         ─────────────────────────────────────── */}
         <nav
+          id="gc-sidebar"
           className="gc-sidebar"
+          aria-label="Main navigation"
           style={{
             width: '240px', minWidth: '240px',
             background: '#fff',
@@ -227,6 +234,7 @@ const MainApp = () => {
               <button
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
+                aria-current={isActive ? 'page' : undefined}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
                   padding: '10px 16px',
@@ -307,21 +315,26 @@ const MainApp = () => {
         {/* ───────────────────────────────────────
             MAIN CONTENT
         ─────────────────────────────────────── */}
-        <main style={{
-          flex: '1 1 0', overflowY: 'auto',
-          background: '#f8f9fa',
-          display: 'flex', flexDirection: 'column',
-        }}>
-          <div style={{ display: activeTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', height: '100%', flex: '1 1 0' }}>
+        <main
+          id="main-content"
+          role="main"
+          tabIndex={-1}
+          style={{
+            flex: '1 1 0', overflowY: 'auto',
+            background: '#f8f9fa',
+            display: 'flex', flexDirection: 'column',
+          }}
+        >
+          <div style={{ display: activeTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', height: '100%', flex: '1 1 0' }} role="region" aria-label="Chat Coach">
             <ChatInterface />
           </div>
-          <div style={{ display: activeTab === 'calculator' ? 'block' : 'none' }}>
+          <div style={{ display: activeTab === 'calculator' ? 'block' : 'none' }} role="region" aria-label="Carbon Calculator">
             <Calculator />
           </div>
-          <div style={{ display: activeTab === 'simulator' ? 'block' : 'none' }}>
+          <div style={{ display: activeTab === 'simulator' ? 'block' : 'none' }} role="region" aria-label="What-If Simulator">
             <WhatIfSimulator />
           </div>
-          <div style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}>
+          <div style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }} role="region" aria-label="Dashboard">
             <Dashboard />
           </div>
         </main>
@@ -330,7 +343,9 @@ const MainApp = () => {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
+          role="presentation"
           onClick={() => setSidebarOpen(false)}
+          onKeyDown={e => e.key === 'Escape' && setSidebarOpen(false)}
           style={{
             position: 'fixed', inset: 0,
             background: 'rgba(0,0,0,0.32)', zIndex: 200,

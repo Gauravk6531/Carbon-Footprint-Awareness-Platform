@@ -99,17 +99,23 @@ const Dashboard = () => {
   };
 
   // 1. Current Footprint (Annual Tonnes)
-  const displayFootprint = currentFootprint && currentFootprint.annual_tonnes !== undefined
-    ? currentFootprint.annual_tonnes
-    : (history.length > 0 ? history[0].annual_tonnes : 0.0);
+  const displayFootprint = Number(
+    currentFootprint && currentFootprint.annual_tonnes !== undefined
+      ? currentFootprint.annual_tonnes
+      : (history.length > 0 && history[0] && history[0].annual_tonnes !== undefined ? history[0].annual_tonnes : 0.0)
+  ) || 0.0;
 
   // 2. Streaks (Based on unique calculation days)
   const uniqueCalcDays = new Set(history.map(h => h.timestamp ? h.timestamp.split('T')[0] : '')).size;
   const streak = uniqueCalcDays > 0 ? uniqueCalcDays : 0;
 
   // 3. Goal Progress & Savings
-  const baselineFootprint = history.length > 0 ? history[history.length - 1].annual_tonnes : displayFootprint;
-  const co2SavedThisMonth = Math.max(0, baselineFootprint - displayFootprint);
+  const baselineFootprint = Number(
+    history.length > 0 && history[history.length - 1] && history[history.length - 1].annual_tonnes !== undefined
+      ? history[history.length - 1].annual_tonnes
+      : displayFootprint
+  ) || 0.0;
+  const co2SavedThisMonth = Math.max(0, baselineFootprint - displayFootprint) || 0.0;
 
   let reductionPercentage = 0;
   if (baselineFootprint > 0) {
@@ -123,7 +129,9 @@ const Dashboard = () => {
   // 4. Trend Data mapping
   const sortedHistory = [...history].reverse();
   const recentCalcs = sortedHistory.slice(-5);
-  const trendData = recentCalcs.length > 0 ? recentCalcs.map(h => h.annual_tonnes) : [displayFootprint || 0];
+  const trendData = recentCalcs.length > 0 
+    ? recentCalcs.map(h => Number(h.annual_tonnes) || 0.0) 
+    : [Number(displayFootprint) || 0.0];
   const maxTrend = Math.max(...trendData, 1.0) + 0.5;
   const weekLabels = recentCalcs.length > 0 
     ? recentCalcs.map(h => {
@@ -146,21 +154,22 @@ const Dashboard = () => {
 
   const actionsList = currentFootprint && currentFootprint.recommendations && currentFootprint.recommendations.length > 0
     ? currentFootprint.recommendations.map((rec, idx) => {
+        const recStr = typeof rec === 'string' ? rec : String(rec || '');
         let icon = '💡';
         let tag = 'Recom';
-        if (rec.toLowerCase().includes('car') || rec.toLowerCase().includes('transport') || rec.toLowerCase().includes('transit')) {
+        if (recStr.toLowerCase().includes('car') || recStr.toLowerCase().includes('transport') || recStr.toLowerCase().includes('transit')) {
           icon = '🚌';
           tag = 'Transport';
-        } else if (rec.toLowerCase().includes('ac') || rec.toLowerCase().includes('cooling') || rec.toLowerCase().includes('electricity') || rec.toLowerCase().includes('insulation')) {
+        } else if (recStr.toLowerCase().includes('ac') || recStr.toLowerCase().includes('cooling') || recStr.toLowerCase().includes('electricity') || recStr.toLowerCase().includes('insulation')) {
           icon = '❄️';
           tag = 'Energy';
-        } else if (rec.toLowerCase().includes('bulb') || rec.toLowerCase().includes('led') || rec.toLowerCase().includes('light')) {
+        } else if (recStr.toLowerCase().includes('bulb') || recStr.toLowerCase().includes('led') || recStr.toLowerCase().includes('light')) {
           icon = '💡';
           tag = 'One-time';
         }
         return {
           icon,
-          title: rec,
+          title: recStr,
           saving: 'Tailored action recommendation',
           tag
         };
@@ -254,7 +263,7 @@ const Dashboard = () => {
         </div>
 
         {/* Bar chart */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '120px' }}>
+        <div role="img" aria-label="Carbon footprint trend chart showing recent calculations" style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '120px' }}>
           {trendData.map((value, idx) => {
             const isLast = idx === trendData.length - 1;
             const heightPct = (value / maxTrend) * 100;
@@ -375,6 +384,7 @@ const Dashboard = () => {
               <button
                 onClick={() => handleCommitPledge(action.title)}
                 disabled={pledgedActionsSet.has(action.title)}
+                aria-label={pledgedActionsSet.has(action.title) ? `Already pledged: ${action.title}` : `Commit to: ${action.title}`}
                 style={{
                   padding: '6px 14px',
                   border: 'none',
