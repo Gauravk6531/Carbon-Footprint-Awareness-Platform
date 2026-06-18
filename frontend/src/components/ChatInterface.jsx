@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { chatAPI, pledgeAPI } from '../services/api';
 import { useAppContext } from '../context/AppContext';
+import { DEFAULT_FORM_DATA } from '../constants/defaults';
 
 /* ─────────────────────────────────────────────
    Structured response cards (Google Cloud card style)
@@ -242,20 +243,6 @@ const StructuredResponseCards = ({ data }) => {
 /* ─────────────────────────────────────────────
    ChatInterface — Google Cloud styled
 ───────────────────────────────────────────── */
-const defaultFormData = {
-  daily_car_km: '',
-  car_fuel_type: 'petrol',
-  monthly_flights: '',
-  flight_type: 'domestic',
-  public_transport_km: '',
-  public_transport_type: 'bus',
-  monthly_electricity_kwh: '',
-  ac_hours_daily: '',
-  lpg_kg_monthly: '',
-  household_size: 1,
-  region: 'india',
-};
-
 const ChatInterface = () => {
   const { 
     userId, 
@@ -307,7 +294,7 @@ const ChatInterface = () => {
       // Link sections: Sync extracted values to calculator context
       if (res.carbon_result && res.extracted_data) {
         const mergedData = {
-          ...defaultFormData,
+          ...DEFAULT_FORM_DATA,
           ...calculatorFormData,
         };
 

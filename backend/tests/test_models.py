@@ -4,7 +4,7 @@ Covers defaults, validation, normalization, and boundary conditions.
 """
 
 import pytest
-from app.models import CarbonInput, ChatRequest, ActionPledge, ChatMessage
+from app.models import CarbonInput, ChatRequest, ActionPledge, ChatMessage, ScenarioRequest
 from pydantic import ValidationError
 
 
@@ -70,3 +70,20 @@ def test_action_pledge_rejects_negative_reduction():
 def test_carbon_input_transport_type_normalizes():
     ci = CarbonInput(public_transport_type='METRO')
     assert ci.public_transport_type == 'metro'
+
+
+def test_scenario_request_rejects_unknown_fields():
+    with pytest.raises(ValidationError):
+        ScenarioRequest(
+            baseline_data=CarbonInput(),
+            scenario_changes={"not_a_field": 1},
+        )
+
+
+def test_scenario_request_accepts_valid_fields():
+    sr = ScenarioRequest(
+        baseline_data=CarbonInput(daily_car_km=20),
+        scenario_changes={"daily_car_km": 0},
+        scenario_name="No car",
+    )
+    assert sr.scenario_changes["daily_car_km"] == 0

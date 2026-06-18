@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { simulatorAPI } from '../services/api';
+import FormError from './FormError';
 
 const WhatIfSimulator = () => {
   const { 
@@ -13,6 +14,7 @@ const WhatIfSimulator = () => {
   } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
+  const [error, setError] = useState('');
 
   if (!currentFootprint || !calculatorFormData) {
     return (
@@ -64,9 +66,10 @@ const WhatIfSimulator = () => {
         return [...prev, result];
       });
       setSelectedScenario(result);
-    } catch (error) {
-      console.error('Simulation error:', error);
-      alert('Failed to run simulation');
+      setError('');
+    } catch (err) {
+      console.error('Simulation error:', err);
+      setError('Failed to run simulation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -94,6 +97,8 @@ const WhatIfSimulator = () => {
           Explore how lifestyle changes could reduce your carbon footprint
         </p>
       </div>
+
+      <FormError message={error} onDismiss={() => setError('')} />
 
       {/* Scenario cards grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px', marginBottom: '28px' }}>

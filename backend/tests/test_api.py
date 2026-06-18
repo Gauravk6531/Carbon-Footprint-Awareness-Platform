@@ -244,5 +244,31 @@ def test_footprint_history_returns_list():
     assert isinstance(r.json()["footprints"], list)
 
 
+def test_invalid_user_id_rejected():
+    r = client.get("/api/footprints/bad!user")
+    assert r.status_code == 400
+
+
+def test_invalid_session_id_rejected():
+    r = client.get("/api/history/session/with/slash")
+    assert r.status_code == 400
+
+
+def test_valid_session_id_returns_messages():
+    r = client.get("/api/history/session-test-123")
+    assert r.status_code == 200
+    assert "messages" in r.json()
+
+
+def test_what_if_rejects_invalid_scenario_field():
+    payload = {
+        "baseline_data": BASE_INPUT,
+        "scenario_changes": {"invalid_field": 999},
+        "scenario_name": "Bad scenario",
+    }
+    r = client.post("/api/what-if", json=payload)
+    assert r.status_code == 422
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

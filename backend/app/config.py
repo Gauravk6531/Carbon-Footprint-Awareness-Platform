@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./carbon_db.sqlite"
     environment: str = "development"
     debug: bool = False
+    allowed_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://carbon-footprint-awareness-platform-art3.onrender.com",
+        "https://carbon-footprint-awareness-platform-82zfhp49n.vercel.app",
+    ]
 
     def __init__(self, **data):
         super().__init__(**data)

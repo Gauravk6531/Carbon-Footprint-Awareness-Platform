@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { calculatorAPI } from '../services/api';
 import { useAppContext } from '../context/AppContext';
+import { DEFAULT_FORM_DATA } from '../constants/defaults';
 import EmissionCard from './EmissionCard';
+import FormError from './FormError';
 
 /* ─────────────────────────────────────────
    Reusable Google Cloud form field
@@ -92,25 +94,12 @@ const SectionHeader = ({ icon, title }) => (
   </div>
 );
 
-const defaultFormData = {
-  daily_car_km: '',
-  car_fuel_type: 'petrol',
-  monthly_flights: '',
-  flight_type: 'domestic',
-  public_transport_km: '',
-  public_transport_type: 'bus',
-  monthly_electricity_kwh: '',
-  ac_hours_daily: '',
-  lpg_kg_monthly: '',
-  household_size: 1,
-  region: 'india',
-};
-
 const Calculator = () => {
   const { userId, setCurrentFootprint, currentFootprint, calculatorFormData, setCalculatorFormData } = useAppContext();
-  const [formData, setFormData] = useState(() => calculatorFormData || defaultFormData);
+  const [formData, setFormData] = useState(() => calculatorFormData || DEFAULT_FORM_DATA);
   const [result, setResult] = useState(currentFootprint);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Sync local formData with global context state if updated externally (like from Chat Coach)
   useEffect(() => {
@@ -151,9 +140,10 @@ const Calculator = () => {
       const response = await calculatorAPI.calculate(data, userId);
       setResult(response);
       setCurrentFootprint(response);
-    } catch (error) {
-      console.error('Calculation error:', error);
-      alert('Failed to calculate footprint');
+      setError('');
+    } catch (err) {
+      console.error('Calculation error:', err);
+      setError('Failed to calculate footprint. Please check your inputs and try again.');
     } finally {
       setLoading(false);
     }
@@ -191,7 +181,7 @@ const Calculator = () => {
           padding: '24px',
         }}>
           <form onSubmit={handleSubmit}>
-
+            <FormError message={error} onDismiss={() => setError('')} />
             {/* Transportation */}
             <SectionHeader icon="🚗" title="Transportation" />
             <GcField label="Daily car travel (km)" id="daily_car_km">

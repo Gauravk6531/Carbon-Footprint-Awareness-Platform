@@ -183,18 +183,30 @@ EcoMind-AI/
 │
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # FastAPI app & endpoints
-│   │   ├── carbon_engine.py      # Calculation logic
-│   │   ├── gemini_ai.py          # Gemini integration
-│   │   ├── models.py             # Pydantic models
-│   │   ├── database.py           # SQLAlchemy setup
-│   │   └── config.py             # Configuration
-│   ├── tests/
-│   │   ├── test_carbon_engine.py
-│   │   └── test_api.py
+│   │   ├── main.py              # FastAPI app factory & middleware
+│   │   ├── routers/             # Modular API route handlers
+│   │   ├── carbon_engine.py     # Deterministic calculation logic
+│   │   ├── gemini_ai.py         # Gemini integration
+│   │   ├── text_extraction.py   # Regex fallback parser
+│   │   ├── security.py          # Input validation & sanitization
+│   │   ├── recommendations.py   # Action recommendation engine
+│   │   ├── models.py            # Pydantic v2 models
+│   │   ├── database.py          # SQLAlchemy setup
+│   │   └── config.py            # Environment configuration
+│   ├── tests/                   # 100+ pytest test cases
 │   ├── run.py
 │   ├── requirements.txt
 │   └── .env.example
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── constants/           # Shared defaults
+│   │   ├── context/
+│   │   ├── services/
+│   │   └── __tests__/           # Vitest component tests
+│   ├── package.json
+│   └── vite.config.js
 │
 ├── .gitignore
 ├── README.md
@@ -291,6 +303,14 @@ Frontend runs on `http://localhost:5173`
 
 ## 🔐 Security
 
+✅ **CORS Protection**
+- Explicit allowed origins (no wildcard in production config)
+- Restricted HTTP methods and headers
+
+✅ **Rate Limiting**
+- Chat endpoint limited to 30 requests/minute per IP
+- Prevents Gemini API abuse and cost overruns
+
 ✅ **API Key Protection**
 - Never hardcoded
 - Read from `GEMINI_API_KEY` environment variable only
@@ -375,22 +395,22 @@ npx vitest run
 
 Test coverage includes:
 
-**Backend (75+ test cases):**
-- ✅ Carbon engine calculations (parameterized, all fuel types)
-- ✅ API endpoint integration tests
-- ✅ Pydantic model validation (bounds, type coercion, defaults)
-- ✅ Security headers verification (CSP, X-Frame-Options, etc.)
-- ✅ Input sanitization and edge cases
-- ✅ Household size adjustments
-- ✅ Region-specific electricity factors
-- ✅ Error handling and graceful failures
+**Backend (100+ test cases):**
+- Carbon engine calculations (parameterized, all fuel types)
+- API endpoint integration tests
+- Pydantic model validation (bounds, type coercion, scenario field validation)
+- Security helpers (sanitize, user/session ID validation)
+- Text extraction fallback parser
+- Recommendation generation
+- Security headers verification (CSP, X-Frame-Options, etc.)
+- Rate limiting and input sanitization edge cases
 
-**Frontend (20+ test cases):**
-- ✅ Component rendering tests (App, Calculator, Dashboard, EmissionCard)
-- ✅ API service layer unit tests (all endpoints mocked)
-- ✅ Form validation and interaction tests
-- ✅ Navigation and routing tests
-- ✅ Edge cases (null data, empty states)
+**Frontend (25+ test cases):**
+- Component rendering tests (App, Calculator, Dashboard, EmissionCard)
+- API service layer unit tests (all endpoints mocked)
+- AppContext persistence and user ID generation
+- Form submission and accessible error handling
+- Navigation and tab switching tests
 
 ---
 

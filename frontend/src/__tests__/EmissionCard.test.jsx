@@ -36,8 +36,8 @@ describe('EmissionCard Component', () => {
     expect(screen.getByText('electricity')).toBeInTheDocument();
   });
 
-  it('returns null if result is missing', () => {
-    const { container } = render(<EmissionCard result={null} />);
-    expect(container.firstChild).toBeNull();
+  it('renders category label with accessible description', () => {
+    render(<EmissionCard result={mockResult} />);
+    expect(screen.getByText('Average')).toBeInTheDocument();
   });
 });

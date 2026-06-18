@@ -182,8 +182,8 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <div style={{ width: '32px', height: '32px', border: '3px solid #e8eaed', borderTopColor: '#1a73e8', borderRadius: '50%', animation: 'gcSpin 0.8s linear infinite' }} />
+      <div role="status" aria-live="polite" aria-busy="true" style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div aria-hidden="true" style={{ width: '32px', height: '32px', border: '3px solid #e8eaed', borderTopColor: '#1a73e8', borderRadius: '50%', animation: 'gcSpin 0.8s linear infinite' }} />
         <span style={{ marginLeft: '12px', fontFamily: '"Google Sans Text", Roboto, Arial, sans-serif', fontSize: '14px', color: '#5f6368' }}>Loading metrics...</span>
         <style>{`@keyframes gcSpin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -319,13 +319,20 @@ const Dashboard = () => {
             {goalProgress}%
           </span>
         </div>
-        <div style={{ height: '8px', background: '#e8eaed', borderRadius: '4px', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', borderRadius: '4px',
-            background: 'linear-gradient(90deg, #34a853, #1a73e8)',
-            width: `${goalProgress}%`,
-            transition: 'width 800ms cubic-bezier(0.4,0,0.2,1)',
-          }} />
+        <div style={{ height: '8px', background: '#e8eaed', borderRadius: '4px', overflow: 'hidden' }} role="presentation">
+          <div
+            role="progressbar"
+            aria-valuenow={goalProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Progress toward 10% monthly reduction goal"
+            style={{
+              height: '100%', borderRadius: '4px',
+              background: 'linear-gradient(90deg, #34a853, #1a73e8)',
+              width: `${goalProgress}%`,
+              transition: 'width 800ms cubic-bezier(0.4,0,0.2,1)',
+            }}
+          />
         </div>
       </div>
 

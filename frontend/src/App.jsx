@@ -149,56 +149,61 @@ const MainApp = () => {
 
         {/* Right-side actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          {/* Outlined "Docs" button */}
-          <button style={{
-            padding: '0 16px', height: '36px',
-            border: '1px solid #dadce0', borderRadius: '4px',
-            background: 'transparent',
-            fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
-            fontSize: '14px', fontWeight: '500', color: '#1a73e8',
-            cursor: 'pointer', letterSpacing: '0.01em',
-            transition: 'background 200ms, border-color 200ms',
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = 'rgba(26,115,232,0.04)'; e.currentTarget.style.borderColor = '#1a73e8'; }}
-          onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#dadce0'; }}
-          className="docs-btn"
+          <a
+            href="http://localhost:8000/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="docs-btn"
+            aria-label="Open API documentation in new tab"
+            style={{
+              padding: '0 16px', height: '36px',
+              border: '1px solid #dadce0', borderRadius: '4px',
+              background: 'transparent',
+              fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+              fontSize: '14px', fontWeight: '500', color: '#1a73e8',
+              cursor: 'pointer', letterSpacing: '0.01em',
+              transition: 'background 200ms, border-color 200ms',
+              display: 'inline-flex', alignItems: 'center', textDecoration: 'none',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = 'rgba(26,115,232,0.04)'; e.currentTarget.style.borderColor = '#1a73e8'; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#dadce0'; }}
           >
-            Docs
+            API Docs
+          </a>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('chat')}
+            aria-label="Start carbon coaching chat"
+            style={{
+              padding: '0 20px', height: '36px',
+              border: 'none', borderRadius: '4px',
+              background: '#1a73e8', color: '#fff',
+              fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+              fontSize: '14px', fontWeight: '500',
+              cursor: 'pointer', letterSpacing: '0.01em',
+              boxShadow: '0 1px 3px rgba(60,64,67,0.25)',
+              transition: 'background 280ms, box-shadow 280ms',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = '#1557b0'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(60,64,67,0.20)'; }}
+            onMouseOut={e => { e.currentTarget.style.background = '#1a73e8'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(60,64,67,0.25)'; }}
+          >
+            Start coaching
           </button>
 
-          {/* Filled primary CTA */}
-          <button style={{
-            padding: '0 20px', height: '36px',
-            border: 'none', borderRadius: '4px',
-            background: '#1a73e8', color: '#fff',
-            fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
-            fontSize: '14px', fontWeight: '500',
-            cursor: 'pointer', letterSpacing: '0.01em',
-            boxShadow: '0 1px 3px rgba(60,64,67,0.25)',
-            transition: 'background 280ms, box-shadow 280ms',
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = '#1557b0'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(60,64,67,0.20)'; }}
-          onMouseOut={e => { e.currentTarget.style.background = '#1a73e8'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(60,64,67,0.25)'; }}
-          >
-            Start free
-          </button>
-
-          {/* User avatar */}
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="User Profile"
+          <span
+            aria-hidden="true"
             style={{
               width: '32px', height: '32px', borderRadius: '50%',
               background: '#e8f0fe', color: '#1a73e8',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
               fontSize: '14px', fontWeight: '500',
-              cursor: 'pointer', marginLeft: '4px',
+              marginLeft: '4px',
             }}
           >
             U
-          </div>
+          </span>
         </div>
       </header>
 
@@ -214,6 +219,7 @@ const MainApp = () => {
           id="gc-sidebar"
           className="gc-sidebar"
           aria-label="Main navigation"
+          role="tablist"
           style={{
             width: '240px', minWidth: '240px',
             background: '#fff',
@@ -239,6 +245,10 @@ const MainApp = () => {
             return (
               <button
                 key={tab.id}
+                id={`tab-${tab.id}`}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`panel-${tab.id}`}
                 onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
                 aria-current={isActive ? 'page' : undefined}
                 style={{
@@ -281,7 +291,8 @@ const MainApp = () => {
           </div>
 
           {['Documentation', 'Tips & Guides', 'About EcoMind'].map(link => (
-            <a key={link} href="#"
+            <a key={link} href="#main-content"
+              aria-label={`Navigate to ${link}`}
               style={{
                 display: 'block', padding: '8px 16px',
                 margin: '1px 8px 1px 0', borderRadius: '0 100px 100px 0',
@@ -331,16 +342,44 @@ const MainApp = () => {
             display: 'flex', flexDirection: 'column',
           }}
         >
-          <div style={{ display: activeTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', height: '100%', flex: '1 1 0' }} role="region" aria-label="Chat Coach">
+          <div
+            hidden={activeTab !== 'chat'}
+            style={{ display: activeTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', height: '100%', flex: '1 1 0' }}
+            role="tabpanel"
+            id="panel-chat"
+            aria-labelledby="tab-chat"
+            tabIndex={0}
+          >
             <ChatInterface />
           </div>
-          <div style={{ display: activeTab === 'calculator' ? 'block' : 'none' }} role="region" aria-label="Carbon Calculator">
+          <div
+            hidden={activeTab !== 'calculator'}
+            style={{ display: activeTab === 'calculator' ? 'block' : 'none' }}
+            role="tabpanel"
+            id="panel-calculator"
+            aria-labelledby="tab-calculator"
+            tabIndex={0}
+          >
             <Calculator />
           </div>
-          <div style={{ display: activeTab === 'simulator' ? 'block' : 'none' }} role="region" aria-label="What-If Simulator">
+          <div
+            hidden={activeTab !== 'simulator'}
+            style={{ display: activeTab === 'simulator' ? 'block' : 'none' }}
+            role="tabpanel"
+            id="panel-simulator"
+            aria-labelledby="tab-simulator"
+            tabIndex={0}
+          >
             <WhatIfSimulator />
           </div>
-          <div style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }} role="region" aria-label="Dashboard">
+          <div
+            hidden={activeTab !== 'dashboard'}
+            style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}
+            role="tabpanel"
+            id="panel-dashboard"
+            aria-labelledby="tab-dashboard"
+            tabIndex={0}
+          >
             <Dashboard />
           </div>
         </main>

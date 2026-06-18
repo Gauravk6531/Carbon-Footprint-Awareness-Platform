@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react';
+import { getOrCreateUserId } from '../constants/defaults';
 
 const AppContext = createContext();
 
@@ -6,7 +7,7 @@ export const AppProvider = ({ children }) => {
   const [sessionId, setSessionIdState] = useState(() => {
     return localStorage.getItem('sessionId') || null;
   });
-  const [userId, setUserId] = useState(localStorage.getItem('userId') || null);
+  const [userId, setUserId] = useState(() => getOrCreateUserId());
   const [userProfile, setUserProfile] = useState(null);
   const [currentFootprint, setCurrentFootprintState] = useState(() => {
     try {

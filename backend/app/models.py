@@ -115,6 +115,16 @@ class ScenarioRequest(BaseModel):
     scenario_changes: Dict = Field(..., description="Changes to apply to baseline")
     scenario_name: Optional[str] = Field(None, max_length=200)
 
+    @field_validator("scenario_changes")
+    @classmethod
+    def validate_scenario_changes(cls, changes: Dict) -> Dict:
+        """Only allow known CarbonInput fields to be overridden."""
+        allowed = set(CarbonInput.model_fields.keys())
+        invalid = set(changes.keys()) - allowed
+        if invalid:
+            raise ValueError(f"Invalid scenario fields: {', '.join(sorted(invalid))}")
+        return changes
+
 
 class WhatIfResult(BaseModel):
     """Result of what-if simulation."""
