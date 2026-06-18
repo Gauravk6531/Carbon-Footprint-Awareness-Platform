@@ -4,12 +4,17 @@ Main FastAPI application with all endpoints.
 
 import html
 import re
+import logging
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional
 from sqlalchemy import desc
 import uuid
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("app.main")
 
 from app.config import settings
 from app.models import (
@@ -18,6 +23,7 @@ from app.models import (
 )
 from app.carbon_engine import CarbonCalculator
 from app.gemini_ai import GeminiClient
+from app.text_extraction import extract_from_text, local_chat_response
 from app.database import get_db, UserFootprint, UserPledge, ChatHistory, UserProfile
 
 app = FastAPI(
@@ -42,11 +48,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    """Add standard security headers to all responses."""
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'self' http://localhost:* https://*; connect-src 'self' http://localhost:* https://*; img-src 'self' data: http://localhost:* https://*; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; media-src 'self' data: http://localhost:* https://*;"
+    return response
+
 # Gemini client (calculator is created per-request to honour region)
 try:
     gemini_client = GeminiClient()
 except ValueError:
-    print("Warning: GEMINI_API_KEY not set. Chat features will be limited.")
+    logger.warning("GEMINI_API_KEY environment variable is not set. Chat features will be limited.")
     gemini_client = None
 
 
@@ -204,6 +221,14 @@ async def chat_endpoint(request: ChatRequest, db=Depends(get_db)):
         ))
 
         extracted_data = gemini_client.extract_carbon_data(request.message)
+        gemini_failed = extracted_data.pop("gemini_failed", False) or not gemini_client.api_available
+
+        # Prefer local parsing when Gemini failed but local rules found usable data
+        if gemini_failed:
+            local_data = extract_from_text(request.message)
+            if local_data.get("confidence") in ("high", "medium"):
+                extracted_data = local_data
+
         needs_followup = extracted_data.get("needs_followup", False)
 
         carbon_result = None
@@ -234,16 +259,20 @@ async def chat_endpoint(request: ChatRequest, db=Depends(get_db)):
 
         structured_data = None
         if carbon_result:
-            structured_data = gemini_client.generate_structured_response(extracted_data, carbon_result)
-            summary = gemini_client.generate_summary(extracted_data, carbon_result)
+            structured_data = gemini_client.build_deterministic_structured_response(extracted_data, carbon_result)
+            summary = gemini_client.build_deterministic_summary(extracted_data, carbon_result)
             response_msg = _sanitize(
                 f"{summary}\n\nLet me share some personalized actions you can take to reduce your footprint."
             )
-        elif needs_followup:
-            followup = extracted_data.get("followup_question") or gemini_client.generate_followup_questions(extracted_data)
-            response_msg = _sanitize(f"Thanks for sharing! {followup}")
+        elif gemini_failed:
+            response_msg = _sanitize(local_chat_response(request.message, extracted_data))
         else:
-            response_msg = "I'd love to learn more about your lifestyle to estimate your carbon footprint accurately. Could you share details about your daily activities?"
+            try:
+                raw_reply = gemini_client.generate_general_chat(request.message)
+                response_msg = _sanitize(raw_reply)
+            except Exception as e:
+                logger.error("Chat generation error: %s", e)
+                response_msg = _sanitize(local_chat_response(request.message, extracted_data))
 
         db.add(ChatHistory(
             id=str(uuid.uuid4()),

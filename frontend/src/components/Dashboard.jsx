@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { calculatorAPI, pledgeAPI } from '../services/api';
 
@@ -64,7 +64,7 @@ const Dashboard = () => {
   const [pledges, setPledges] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       const uid = userId || 'anonymous';
       const [histRes, pledgeRes] = await Promise.all([
@@ -78,11 +78,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     loadDashboardData();
-  }, [userId, currentFootprint]);
+  }, [loadDashboardData, currentFootprint]);
 
   const handleCommitPledge = async (actionTitle) => {
     try {
@@ -153,7 +153,7 @@ const Dashboard = () => {
   const pledgedActionsSet = new Set(pledges.map(p => p.action));
 
   const actionsList = currentFootprint && currentFootprint.recommendations && currentFootprint.recommendations.length > 0
-    ? currentFootprint.recommendations.map((rec, idx) => {
+    ? currentFootprint.recommendations.map((rec) => {
         const recStr = typeof rec === 'string' ? rec : String(rec || '');
         let icon = '💡';
         let tag = 'Recom';
@@ -211,7 +211,7 @@ const Dashboard = () => {
       </div>
 
       {/* ── Stats grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      <div aria-live="polite" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <StatCard
           label="Annual Footprint"
           value={displayFootprint.toFixed(1)}

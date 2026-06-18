@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { chatAPI, pledgeAPI } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 
@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
    Structured response cards (Google Cloud card style)
 ───────────────────────────────────────────── */
 const StructuredResponseCards = ({ data }) => {
-  const { summary, contributors, recommendations, what_if, challenge, confidence } = data;
+  const { summary, recommendations, what_if, challenge, confidence } = data;
   const { userId } = useAppContext();
   const [pledgedTasks, setPledgedTasks] = useState({});
   const [pledging, setPledging] = useState({});
@@ -152,7 +152,7 @@ const StructuredResponseCards = ({ data }) => {
             🎯 What-If Simulation
           </div>
           <p style={{ fontFamily: '"Google Sans Text", Roboto, Arial, sans-serif', fontSize: '13px', color: '#5f6368', fontStyle: 'italic', margin: '0 0 14px', borderLeft: '3px solid #1a73e8', paddingLeft: '10px' }}>
-            "{what_if.scenario}"
+            &ldquo;{what_if.scenario}&rdquo;
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div style={{ background: '#fff', border: '1px solid #dadce0', borderRadius: '4px', padding: '10px', textAlign: 'center' }}>

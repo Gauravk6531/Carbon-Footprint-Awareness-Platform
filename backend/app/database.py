@@ -3,7 +3,7 @@ Database models and session management for EcoMind AI.
 """
 
 from sqlalchemy import create_engine, Column, String, Float, DateTime, Integer, JSON
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from datetime import datetime, timezone
 from app.config import settings
 
@@ -11,7 +11,10 @@ DATABASE_URL = settings.database_url
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for SQLAlchemy models."""
+    pass
 
 
 class UserFootprint(Base):

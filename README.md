@@ -296,20 +296,30 @@ Frontend runs on `http://localhost:5173`
 - Read from `GEMINI_API_KEY` environment variable only
 - Never exposed in logs or UI
 
+✅ **Security Headers** (via middleware)
+- `X-Frame-Options: DENY` — Prevents clickjacking
+- `X-Content-Type-Options: nosniff` — Prevents MIME sniffing
+- `X-XSS-Protection: 1; mode=block` — XSS filter
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Content-Security-Policy` — Restricts resource loading
+
 ✅ **Input Validation**
-- All Pydantic models validate types and ranges
-- User inputs bounded (e.g., AC: 0-24 hours)
-- Gemini output sanitized
+- All Pydantic models validate types and ranges with `Field(ge=, le=)`
+- User inputs bounded (e.g., AC: 0–24 hours, car km: 0–2000)
+- User IDs validated with regex (`^[\w\-]{1,64}$`)
+- Gemini output HTML-escaped before client delivery
+- Chat messages length-limited (max 2000 chars)
 
 ✅ **Database Safety**
 - SQLite local-only
 - No sensitive data stored
 - Anonymous user IDs supported
+- UUID-based record IDs
 
 ✅ **Error Handling**
-- Graceful failures
-- No stack traces in UI
-- User-friendly error messages
+- Custom exception handler — never leaks stack traces
+- Graceful failures with user-friendly messages
+- Structured logging via Python `logging` module
 
 ---
 
@@ -351,18 +361,36 @@ Frontend runs on `http://localhost:5173`
 
 ## 🧪 Testing
 
-Run all tests:
+### Backend Tests
 ```bash
 cd backend
-pytest tests/ -v --cov=app
+python -m pytest tests/ -v --tb=short
+```
+
+### Frontend Tests
+```bash
+cd frontend
+npx vitest run
 ```
 
 Test coverage includes:
-- ✅ Carbon calculations (8 test cases)
-- ✅ API endpoints (4 test cases)
+
+**Backend (75+ test cases):**
+- ✅ Carbon engine calculations (parameterized, all fuel types)
+- ✅ API endpoint integration tests
+- ✅ Pydantic model validation (bounds, type coercion, defaults)
+- ✅ Security headers verification (CSP, X-Frame-Options, etc.)
+- ✅ Input sanitization and edge cases
 - ✅ Household size adjustments
-- ✅ Region-specific electricity
-- ✅ Error handling
+- ✅ Region-specific electricity factors
+- ✅ Error handling and graceful failures
+
+**Frontend (20+ test cases):**
+- ✅ Component rendering tests (App, Calculator, Dashboard, EmissionCard)
+- ✅ API service layer unit tests (all endpoints mocked)
+- ✅ Form validation and interaction tests
+- ✅ Navigation and routing tests
+- ✅ Edge cases (null data, empty states)
 
 ---
 
@@ -538,11 +566,15 @@ A: Yes! Backend runs on any Python server. Frontend on any static host.
 - [x] Tests
 
 ✅ **Code Quality**
-- [x] Clean, modular code
-- [x] Comprehensive comments
-- [x] Error handling
-- [x] Input validation
-- [x] Security (no hardcoded keys)
+- [x] Clean, modular code with Google-style docstrings
+- [x] Comprehensive comments and type annotations
+- [x] ESLint (frontend) and Ruff (backend) linter configs
+- [x] Structured logging (Python `logging` module)
+- [x] Named constants (no magic numbers)
+- [x] Modern SQLAlchemy 2.0 `DeclarativeBase`
+- [x] Pydantic v2 with `Field` validators
+- [x] Error handling and input validation
+- [x] Security (no hardcoded keys, security headers)
 
 ✅ **Documentation**
 - [x] Polished README
@@ -551,12 +583,16 @@ A: Yes! Backend runs on any Python server. Frontend on any static host.
 - [x] API documentation
 - [x] Assumptions listed
 
-✅ **Design**
-- [x] Professional UI
-- [x] Responsive layout
-- [x] Accessibility
-- [x] Consistent branding
-- [x] Smooth animations
+✅ **Design & Accessibility**
+- [x] Professional Google Cloud-inspired UI
+- [x] Responsive layout (mobile, tablet, desktop)
+- [x] WCAG 2.1 AA accessibility compliance
+- [x] Skip-to-content link for keyboard users
+- [x] `focus-visible` outlines for keyboard navigation
+- [x] `aria-live` regions for dynamic content
+- [x] `prefers-reduced-motion` media query
+- [x] Semantic HTML5 (header, nav, main, footer roles)
+- [x] Consistent Google branding and smooth animations
 
 ✅ **Repository**
 - [x] .gitignore configured

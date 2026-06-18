@@ -1,0 +1,20 @@
+[project]
+name = "ecomind-ai-backend"
+version = "1.0.0"
+description = "AI-powered Carbon Footprint Awareness Platform backend"
+requires-python = ">=3.9"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "D", "UP", "B", "S", "C4"]
+ignore = ["D100", "D104", "S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

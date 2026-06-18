@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const EmissionCard = ({ result }) => {
   if (!result) return null;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { simulatorAPI } from '../services/api';
 
@@ -147,7 +147,7 @@ const WhatIfSimulator = () => {
 
       {/* Results */}
       {selectedScenario && (
-        <div style={{ background: '#fff', border: '1px solid #dadce0', borderRadius: '8px', padding: '24px' }}>
+        <div aria-live="polite" style={{ background: '#fff', border: '1px solid #dadce0', borderRadius: '8px', padding: '24px' }}>
           <h3 style={{
             fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
             fontSize: '18px', fontWeight: '400', color: '#202124',
@@ -196,7 +196,7 @@ const WhatIfSimulator = () => {
             <thead>
               <tr style={{ borderBottom: '2px solid #e8eaed' }}>
                 {['Scenario', 'Reduction', 'New Monthly', 'Annual Savings'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontFamily: '"Google Sans", Roboto, Arial, sans-serif', fontSize: '12px', fontWeight: '600', color: '#80868b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{h}</th>
+                  <th key={h} scope="col" style={{ textAlign: 'left', padding: '8px 12px', fontFamily: '"Google Sans", Roboto, Arial, sans-serif', fontSize: '12px', fontWeight: '600', color: '#80868b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>

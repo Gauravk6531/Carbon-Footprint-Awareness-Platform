@@ -8,3 +8,64 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
 }
+
+/* ── Accessibility: Skip to main content ── */
+.skip-to-main {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+  padding: 12px 24px;
+  background: #1a73e8;
+  color: #fff;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.skip-to-main:focus {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: auto;
+  height: auto;
+  overflow: visible;
+}
+
+/* ── Accessibility: Focus-visible outlines for keyboard navigation ── */
+*:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Accessibility: Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Accessibility: High contrast focus for dark backgrounds ── */
+.gc-sidebar button:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: -2px;
+}

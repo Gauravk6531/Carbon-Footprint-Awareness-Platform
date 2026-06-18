@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /* ──────────────────────────────────────────────
    IntroPage
@@ -145,6 +145,7 @@ const IntroPage = ({ onEnter }) => {
               loop
               muted
               playsInline
+              aria-hidden="true"
               style={{
                 width: '140px',
                 height: '140px',

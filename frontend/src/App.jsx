@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import IntroPage from './components/IntroPage';
 import ChatInterface from './components/ChatInterface';
 import Calculator from './components/Calculator';
@@ -14,6 +14,7 @@ const EcoMindLogo = () => (
     <video
       src="/logo_anim.mp4"
       autoPlay loop muted playsInline
+      aria-hidden="true"
       style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
     />
     <span style={{
@@ -35,22 +36,22 @@ const EcoMindLogo = () => (
 ──────────────────────────────────────────────── */
 const NavIcons = {
   chat: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
     </svg>
   ),
   calculator: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/>
     </svg>
   ),
   simulator: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
     </svg>
   ),
   dashboard: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
     </svg>
   ),
@@ -183,14 +184,19 @@ const MainApp = () => {
           </button>
 
           {/* User avatar */}
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '50%',
-            background: '#e8f0fe', color: '#1a73e8',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
-            fontSize: '14px', fontWeight: '500',
-            cursor: 'pointer', marginLeft: '4px',
-          }}>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="User Profile"
+            style={{
+              width: '32px', height: '32px', borderRadius: '50%',
+              background: '#e8f0fe', color: '#1a73e8',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+              fontSize: '14px', fontWeight: '500',
+              cursor: 'pointer', marginLeft: '4px',
+            }}
+          >
             U
           </div>
         </div>

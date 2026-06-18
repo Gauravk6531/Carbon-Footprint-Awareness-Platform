@@ -4,9 +4,20 @@ Handles extraction, summarization, and recommendation generation.
 """
 
 import json
-from typing import Dict
-import google.generativeai as genai
+import logging
+from typing import Dict, Tuple
+from google import genai
+from google.genai import errors as genai_errors
 from app.config import settings
+from app.text_extraction import extract_from_text, local_chat_response
+
+logger = logging.getLogger("app.gemini_ai")
+
+MODEL_CANDIDATES = (
+    "gemini-2.0-flash",
+    "gemini-2.5-flash",
+    "gemini-1.5-flash",
+)
 
 
 def _clean_json(text: str) -> str:
@@ -30,8 +41,58 @@ class GeminiClient:
         if not settings.gemini_api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
 
-        genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
+        self.client = genai.Client(api_key=settings.gemini_api_key)
+        self.model = MODEL_CANDIDATES[0]
+        self._last_api_error: str | None = None
+        logger.info("Gemini client initialized with model: %s", self.model)
+
+    @property
+    def api_available(self) -> bool:
+        """False when the most recent Gemini call failed (quota, auth, etc.)."""
+        return self._last_api_error is None
+
+    def _generate(self, prompt: str) -> str:
+        """Send a prompt to Gemini, trying fallback models on quota errors."""
+        last_error = None
+        for model in MODEL_CANDIDATES:
+            try:
+                response = self.client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                )
+                self.model = model
+                self._last_api_error = None
+                return response.text
+            except genai_errors.ClientError as e:
+                last_error = e
+                status = getattr(e, "status_code", None)
+                if status == 429:
+                    logger.warning("Model %s quota exceeded, trying next model", model)
+                    continue
+                raise
+        self._last_api_error = str(last_error)
+        raise last_error
+
+    def generate_general_chat(self, user_text: str) -> str:
+        """
+        Handles general conversation and guides the user naturally 
+        towards carbon footprint estimation if they drift off-topic.
+        """
+        prompt = f"""You are EcoMind AI, an intelligent, friendly, and supportive carbon footprint advisor.
+The user is talking to you in a chat interface. 
+
+User message: "{user_text}"
+
+Respond to them naturally, conversationally, and contextually. 
+If they are greeting you, greet them back enthusiastically. 
+If they ask general environmental questions, answer them accurately. 
+Gently pivot or guide them back to sharing details about their lifestyle (like commute, household energy usage, or flights) so you can help them calculate their carbon footprint. Use clear and concise prose."""
+
+        try:
+            return self._generate(prompt).strip()
+        except Exception as e:
+            logger.error("General chat generation error: %s", e)
+            return local_chat_response(user_text)
 
     def extract_carbon_data(self, user_text: str) -> Dict:
         """
@@ -69,27 +130,15 @@ Rules:
 - Return ONLY JSON, nothing else"""
 
         try:
-            response = self.model.generate_content(prompt)
-            data = json.loads(_clean_json(response.text))
+            text = self._generate(prompt)
+            data = json.loads(_clean_json(text))
+            data["extraction_source"] = "gemini"
             return data
         except Exception as e:
-            print(f"Extraction error: {e}")
-            return {
-                "daily_car_km": 0,
-                "car_fuel_type": "petrol",
-                "monthly_flights": 0,
-                "flight_type": "domestic",
-                "public_transport_km": 0,
-                "public_transport_type": "bus",
-                "monthly_electricity_kwh": 0,
-                "ac_hours_daily": 0,
-                "lpg_kg_monthly": 0,
-                "household_size": 1,
-                "region": "india",
-                "confidence": "low",
-                "needs_followup": True,
-                "followup_question": "Could you provide more details about your daily activities?",
-            }
+            logger.error("Extraction error: %s", e, exc_info=True)
+            local_data = extract_from_text(user_text)
+            local_data["gemini_failed"] = True
+            return local_data
 
     def generate_summary(self, carbon_data: Dict, carbon_result: Dict) -> str:
         """Generate a human-friendly summary of carbon footprint."""
@@ -108,8 +157,7 @@ Main lifestyle factors:
 Make it relatable and encouraging. Do NOT include recommendations yet."""
 
         try:
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
+            return self._generate(prompt).strip()
         except Exception:
             return f"Your carbon footprint is about {carbon_result['annual_tonnes']} tonnes CO2e annually. Let's find ways to reduce it together!"
 
@@ -146,10 +194,10 @@ Return ONLY valid JSON with NO markdown:
 Be specific, realistic, and tailored to their {user_type} lifestyle. Return ONLY JSON."""
 
         try:
-            response = self.model.generate_content(prompt)
-            return json.loads(_clean_json(response.text))
+            text = self._generate(prompt)
+            return json.loads(_clean_json(text))
         except Exception as e:
-            print(f"Action plan generation error: {e}")
+            logger.error("Action plan generation error: %s", e)
             return {
                 "highest_impact_actions": [
                     {"action": "Switch to public transport 3 days a week", "co2_reduction_kg": 50, "effort": "medium", "cost": 0},
@@ -189,8 +237,7 @@ Keep it conversational, not like a form. For example:
 Generate one natural question:"""
 
         try:
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
+            return self._generate(prompt).strip()
         except Exception:
             return "Could you tell me more about your electricity usage?"
 
@@ -206,10 +253,83 @@ Reduction: {scenario.get('percentage_reduction', 0)}%
 Make it encouraging and actionable, focusing on the positive impact."""
 
         try:
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
+            return self._generate(prompt).strip()
         except Exception:
             return f"This change would reduce your footprint by {scenario.get('percentage_reduction', 0)}% - that's significant!"
+
+    def build_deterministic_structured_response(self, carbon_data: Dict, carbon_result: Dict) -> Dict:
+        """Build structured cards from calculation results without calling Gemini."""
+        annual_val = carbon_result.get("annual_tonnes", 0.0)
+        fallback_score = max(10, min(98, int(100 - (annual_val * 4.5))))
+
+        categories = [
+            {"name": cat.capitalize(), "value": round(val * 12 / 1000, 2), "unit": "tons"}
+            for cat, val in carbon_result.get("sources", {}).items() if val > 0
+        ]
+
+        contributors = [
+            {"source": cat.capitalize(), "percentage": round(pct, 1), "annual_tonnes": round(val * 12 / 1000, 2)}
+            for cat, val, pct in carbon_result.get("major_contributors", [])
+        ]
+
+        return {
+            "summary": {
+                "score": fallback_score,
+                "total_annual_tonnes": annual_val,
+                "categories": categories or [{"name": "Overall", "value": annual_val, "unit": "tons"}],
+            },
+            "contributors": contributors or [{"source": "Overall Energy", "percentage": 100.0, "annual_tonnes": annual_val}],
+            "recommendations": {
+                "high_impact": [
+                    {"action": "Reduce personal car travel or switch to public transit", "savings": "0.4 tons CO₂/year"},
+                    {"action": "Optimize air conditioning usage and set thermostat to 25°C", "savings": "0.2 tons CO₂/year"},
+                ],
+                "easy_wins": [
+                    {"action": "Replace conventional bulbs with energy-efficient LEDs"},
+                    {"action": "Enable power-saving mode on home appliances"},
+                ],
+            },
+            "what_if": {
+                "scenario": "If you reduce AC usage by 2 hours daily",
+                "current_footprint": f"{annual_val} tons/year",
+                "new_footprint": f"{round(annual_val * 0.9, 2)} tons/year",
+                "reduction_percentage": 10.0,
+                "estimated_savings_rupees": int(annual_val * 1200),
+            },
+            "challenge": {
+                "title": "Weekly Green Commitment",
+                "tasks": [
+                    "Take public transport or carpool at least twice this week",
+                    "Turn off AC 1 hour earlier each day",
+                ],
+                "potential_saved_kg": 15,
+            },
+            "confidence": {
+                "score": 85 if carbon_result.get("confidence", "").lower().startswith("high") else 65,
+                "assumptions": [
+                    f"Standard fuel emission factors for {carbon_data.get('car_fuel_type', 'petrol')} vehicles",
+                    f"Grid mix electricity emissions for {carbon_data.get('region', 'india')} region",
+                    "Average short-haul and long-haul domestic flight travel distances",
+                ],
+            },
+        }
+
+    def build_deterministic_summary(self, carbon_data: Dict, carbon_result: Dict) -> str:
+        """Human-readable footprint summary without calling Gemini."""
+        annual = carbon_result.get("annual_tonnes", 0)
+        monthly = carbon_result.get("monthly_kg", 0)
+        top_source = "lifestyle choices"
+        contributors = carbon_result.get("major_contributors") or []
+        if contributors:
+            top_source = contributors[0][0].replace("_", " ")
+
+        parts = [
+            f"Based on what you shared, your estimated footprint is about {annual} tonnes CO2e per year "
+            f"({monthly:.0f} kg per month).",
+            f"Your biggest contributor right now looks like {top_source}.",
+            "Small changes in transport and home energy can make a meaningful difference.",
+        ]
+        return " ".join(parts)
 
     def generate_structured_response(self, carbon_data: Dict, carbon_result: Dict) -> Dict:
         """
@@ -328,11 +448,11 @@ Return ONLY valid JSON (no markdown, no backticks, no other text):
 """
 
         try:
-            response = self.model.generate_content(prompt)
-            data = json.loads(_clean_json(response.text))
+            text = self._generate(prompt)
+            data = json.loads(_clean_json(text))
             # Ground the deterministic total to prevent AI hallucination
             data["summary"]["total_annual_tonnes"] = annual_val
             return data
         except Exception as e:
-            print(f"Structured response generation error: {e}")
+            logger.error("Structured response generation error: %s", e)
             return fallback_data
